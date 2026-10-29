@@ -15,7 +15,7 @@ export function TitleBar(): React.JSX.Element {
   return (
     <div
       style={{ height: TITLE_BAR_HEIGHT }}
-      className={`flex shrink-0 items-center justify-between border-b-[0.5px] border-border bg-card/90 backdrop-blur-md [-webkit-app-region:drag] ${
+      className={`relative flex shrink-0 items-center justify-between border-b-[0.5px] border-border bg-card/90 backdrop-blur-md [-webkit-app-region:drag] ${
         isMac ? 'pl-[86px] pr-4' : 'px-4'
       }`}
     >
@@ -36,8 +36,8 @@ export function TitleBar(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Segmented Switcher */}
-      <div className="flex items-center rounded-lg bg-muted/60 p-0.5 border border-border/50 [-webkit-app-region:no-drag]">
+      {/* Segmented Switcher (Mathematically Centered) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center rounded-lg bg-muted/70 p-0.5 border border-border/60 [-webkit-app-region:no-drag] shadow-xs">
         <button
           onClick={() => setActiveTab('bonding')}
           className={`flex items-center space-x-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
@@ -53,9 +53,12 @@ export function TitleBar(): React.JSX.Element {
                 : 'text-muted-foreground'
             }`}
           />
-          <span>Unified Bonding</span>
+          <span>System Bonding</span>
           {bondingActive && (
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping ml-0.5" />
+            <span className="relative flex h-2 w-2 items-center justify-center ml-0.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
           )}
         </button>
 
@@ -68,11 +71,11 @@ export function TitleBar(): React.JSX.Element {
           }`}
         >
           <DownloadCloud className="h-3.5 w-3.5" />
-          <span>Downloads Queue</span>
+          <span>Downloads</span>
         </button>
       </div>
 
-      <div className="w-12" />
+      <div className="w-8" />
     </div>
   )
 }

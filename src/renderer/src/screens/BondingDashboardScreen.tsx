@@ -259,7 +259,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
       </div>
 
       {/* 2. SCROLLABLE DASHBOARD BODY */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 space-y-6 text-foreground">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-14 space-y-6 text-foreground">
         {/* Real-Time Aggregate Speedometer Cards */}
         <div className="grid grid-cols-2 gap-4">
           {/* Download Card */}
