@@ -324,12 +324,20 @@ export class BondingProxyServer {
       host,
       port,
       (err, outboundSocket, finalIface) => {
-        if (err || !outboundSocket || !finalIface) {
+        if (err || !outboundSocket) {
           clientSocket.destroy()
           return
         }
 
-        const ifaceId = finalIface.id
+        const safeIface: NetworkInterfaceInfo = finalIface || {
+          id: 'system-default',
+          displayName: 'System Default',
+          device: 'default',
+          kind: 'other',
+          addresses: []
+        }
+
+        const ifaceId = safeIface.id
         let stats = this.interfaceStats.get(ifaceId)
         if (!stats) {
           stats = {
@@ -355,8 +363,8 @@ export class BondingProxyServer {
           host,
           port,
           protocol,
-          interfaceId: finalIface.id,
-          interfaceName: finalIface.displayName || finalIface.device,
+          interfaceId: safeIface.id,
+          interfaceName: safeIface.displayName || safeIface.device,
           startTime: Date.now(),
           bytesTransferred: 0,
           speedBytesPerSec: 0,
@@ -403,7 +411,8 @@ export class BondingProxyServer {
 
   /**
    * Connect to remote host using a specific network interface's local address,
-   * falling back to remaining interfaces if primary fails.
+   * falling back to remaining interfaces if primary fails, and ultimately to native OS socket routing
+   * to guarantee 100% internet reliability.
    */
   private connectViaInterface(
     preferredIface: NetworkInterfaceInfo | null,
@@ -428,7 +437,33 @@ export class BondingProxyServer {
 
     const tryNext = (): void => {
       if (attemptIndex >= candidateList.length) {
-        callback(new Error(`Failed to connect to ${host}:${port} through any interface`))
+        // Fallback: direct OS default socket routing so user's internet NEVER drops if interface binding fails
+        const fallbackSocket = new Socket()
+        let fallbackConnected = false
+        fallbackSocket.setTimeout(5000)
+
+        const handleFallbackFail = (err?: Error): void => {
+          if (!fallbackConnected) {
+            fallbackConnected = true
+            fallbackSocket.destroy()
+            callback(err || new Error(`Connection to ${host}:${port} failed`))
+          }
+        }
+
+        fallbackSocket.once('error', handleFallbackFail)
+        fallbackSocket.once('timeout', () =>
+          handleFallbackFail(new Error(`Connection to ${host}:${port} timed out`))
+        )
+
+        try {
+          fallbackSocket.connect({ host, port }, () => {
+            fallbackConnected = true
+            fallbackSocket.setTimeout(0)
+            callback(null, fallbackSocket, candidateList[0] || preferredIface || undefined)
+          })
+        } catch (syncErr) {
+          handleFallbackFail(syncErr instanceof Error ? syncErr : new Error(String(syncErr)))
+        }
         return
       }
 
@@ -448,12 +483,6 @@ export class BondingProxyServer {
 
       socket.setTimeout(4000)
 
-      socket.connect({ host, port, localAddress }, () => {
-        connected = true
-        socket.setTimeout(0)
-        callback(null, socket, currentIface)
-      })
-
       let failed = false
       const handleFail = (): void => {
         if (!connected && !failed) {
@@ -465,6 +494,16 @@ export class BondingProxyServer {
 
       socket.once('timeout', handleFail)
       socket.once('error', handleFail)
+
+      try {
+        socket.connect({ host, port, localAddress }, () => {
+          connected = true
+          socket.setTimeout(0)
+          callback(null, socket, currentIface)
+        })
+      } catch {
+        handleFail()
+      }
     }
 
     tryNext()

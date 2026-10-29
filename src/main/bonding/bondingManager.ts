@@ -424,6 +424,14 @@ export class BondingManager {
     }
   }
 
+  getSystemProxy(): SystemProxyManager {
+    return this.systemProxy
+  }
+
+  async sanitizeStartupProxies(): Promise<void> {
+    await this.systemProxy.sanitizeStartupProxies(this.httpPort, this.socksPort)
+  }
+
   async cleanup(): Promise<void> {
     if (this.telemetryTimer) clearInterval(this.telemetryTimer)
     if (this.probeTimer) clearInterval(this.probeTimer)

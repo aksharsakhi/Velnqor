@@ -205,6 +205,12 @@ app.whenReady().then(async () => {
   })
 
   downloadManager = registerIpcHandlers(() => mainWindow)
+
+  // Sanitize any orphaned proxies from unexpected prior system crashes or power losses
+  await bondingManagerInstance
+    ?.sanitizeStartupProxies()
+    .catch((err) => console.error('[velnqor] startup proxy sanitation error:', err))
+
   void startBridge({
     manager: downloadManager,
     offer: (link) => offerLink(link, ensureWindow())
@@ -243,18 +249,27 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', (event) => {
   menuBarManager?.destroy()
-  void bondingManagerInstance?.cleanup()
-  if (quitAfterSuspending || !downloadManager) return
+  // Immediate synchronous proxy disable guarantees macOS network settings are restored even if the process exits abruptly
+  bondingManagerInstance?.getSystemProxy()?.disableSync()
+
+  if (quitAfterSuspending) return
 
   event.preventDefault()
 
   // Guarantee the process exits even if suspending hangs
   const forceQuitTimeout = setTimeout(() => {
+    bondingManagerInstance?.getSystemProxy()?.disableSync()
     app.exit(0)
   }, 3000)
 
-  void downloadManager.suspendAll().finally(() => {
+  const cleanupTasks = [
+    downloadManager ? downloadManager.suspendAll() : Promise.resolve(),
+    bondingManagerInstance ? bondingManagerInstance.cleanup() : Promise.resolve()
+  ]
+
+  void Promise.allSettled(cleanupTasks).finally(() => {
     clearTimeout(forceQuitTimeout)
+    bondingManagerInstance?.getSystemProxy()?.disableSync()
     quitAfterSuspending = true
     app.exit(0)
   })
