@@ -49,4 +49,3 @@ export interface BondingState {
   recentFlows: ActiveFlow[]
   error: string | null
 }
-

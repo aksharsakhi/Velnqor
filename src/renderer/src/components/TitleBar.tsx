@@ -48,7 +48,9 @@ export function TitleBar(): React.JSX.Element {
         >
           <Zap
             className={`h-3.5 w-3.5 ${
-              bondingActive ? 'text-emerald-500 fill-emerald-500 animate-pulse' : 'text-muted-foreground'
+              bondingActive
+                ? 'text-emerald-500 fill-emerald-500 animate-pulse'
+                : 'text-muted-foreground'
             }`}
           />
           <span>Unified Bonding</span>

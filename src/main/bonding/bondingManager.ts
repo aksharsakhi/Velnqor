@@ -2,7 +2,11 @@ import { Socket } from 'node:net'
 import https from 'node:https'
 import { execFile } from 'node:child_process'
 import type { BrowserWindow } from 'electron'
-import type { BondingState, BondingStrategy } from '../../shared/bondingTypes'
+import type {
+  BondingState,
+  BondingStrategy,
+  InterfaceBondingMetric
+} from '../../shared/bondingTypes'
 import { IpcChannels } from '../../shared/ipc-channels'
 import type { NetworkMonitor } from '../network/interfaces'
 import { BondingProxyServer } from './bondingProxy'
@@ -141,9 +145,7 @@ export class BondingManager {
 
     try {
       const interfaces = this.networkMonitor.current ?? []
-      const activeIfaces = interfaces.filter(
-        (i) => i.addresses && i.addresses.length > 0
-      )
+      const activeIfaces = interfaces.filter((i) => i.addresses && i.addresses.length > 0)
 
       // Reliable test endpoints with CDN edge coverage
       const testUrl = 'https://speed.cloudflare.com/__down?bytes=15000000'
@@ -182,9 +184,7 @@ export class BondingManager {
                 timeout: 8000
               },
               (res) => {
-                let streamBytes = 0
                 res.on('data', (chunk: Buffer) => {
-                  streamBytes += chunk.length
                   this.proxy.recordActivity(iface.id, chunk.length, 0)
                   this.sessionTotalBytesDown += chunk.length
                   flow.bytesTransferred += chunk.length
@@ -236,7 +236,7 @@ export class BondingManager {
     let totalDownloadSpeed = 0
     let totalUploadSpeed = 0
 
-    const interfaces: Record<string, any> = {}
+    const interfaces: Record<string, InterfaceBondingMetric> = {}
 
     for (const iface of allInterfaces) {
       const pm = proxyMetrics.interfaces[iface.id]
@@ -263,15 +263,17 @@ export class BondingManager {
         latencyMs: pm ? pm.latencyMs : 25,
         downloadSpeedBytesPerSec: downSpeed,
         uploadSpeedBytesPerSec: upSpeed,
-        totalBytesDownloaded: (pm ? pm.totalBytesDownloaded : 0),
-        totalBytesUploaded: (pm ? pm.totalBytesUploaded : 0),
+        totalBytesDownloaded: pm ? pm.totalBytesDownloaded : 0,
+        totalBytesUploaded: pm ? pm.totalBytesUploaded : 0,
         activeFlowCount: pm ? pm.activeFlowCount : 0,
         weight: 50
       }
     }
 
     // Compute relative traffic share percentages
-    const activeIfaces = Object.values(interfaces).filter((i: any) => i.ip !== 'No IP')
+    const activeIfaces = Object.values(interfaces).filter(
+      (i: InterfaceBondingMetric) => i.ip !== 'No IP'
+    )
     if (totalDownloadSpeed > 0) {
       for (const iface of activeIfaces) {
         iface.weight = Math.min(

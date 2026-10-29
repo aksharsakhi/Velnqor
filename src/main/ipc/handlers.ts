@@ -281,4 +281,3 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): Down
 }
 
 export let bondingManagerInstance: BondingManager | null = null
-

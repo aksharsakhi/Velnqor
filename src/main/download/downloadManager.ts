@@ -1654,6 +1654,15 @@ export class DownloadManager {
     await this.limits.save()
   }
 
+  getActiveCount(): number {
+    return [...this.runtimes.values()].filter((r) => r.state.status === 'downloading').length
+  }
+
+  async pauseActiveDownloads(): Promise<void> {
+    const active = [...this.runtimes.values()].filter((r) => r.state.status === 'downloading')
+    await Promise.all(active.map((r) => this.pause(r.state.id, false)))
+  }
+
   /**
    * Runs the download until every block is in, or it is stopped. Each TICK_MS, and whenever a
    * stream ends, it takes stock: speeds, stuck connections, which networks run streams (see

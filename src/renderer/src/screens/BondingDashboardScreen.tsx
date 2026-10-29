@@ -71,13 +71,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
 
   const [quickUrl, setQuickUrl] = useState('')
 
-  const activeInterfaces = interfaces.filter(
-    (i) => i.addresses && i.addresses.length > 0
-  )
+  const activeInterfaces = interfaces.filter((i) => i.addresses && i.addresses.length > 0)
 
-  const downloadList = Object.values(downloads).filter(
-    (d) => d.status !== 'cancelled'
-  )
+  const downloadList = Object.values(downloads).filter((d) => d.status !== 'cancelled')
 
   const activeDownloads = downloadList.filter(
     (d) => d.status === 'downloading' || d.status === 'queued' || d.status === 'paused'
@@ -133,7 +129,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
       if (text && text.trim()) {
         setQuickUrl(text.trim())
       }
-    } catch {}
+    } catch {
+      // Ignore clipboard read errors if inaccessible
+    }
   }
 
   const handlePauseResume = async (id: string, isPaused: boolean): Promise<void> => {
@@ -189,7 +187,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                Bonding {activeInterfaces.length} active connection{activeInterfaces.length === 1 ? '' : 's'} (Wi-Fi + iPhone USB) into unified high-speed bandwidth.
+                Bonding {activeInterfaces.length} active connection
+                {activeInterfaces.length === 1 ? '' : 's'} (Wi-Fi + iPhone USB) into unified
+                high-speed bandwidth.
               </p>
             </div>
           </div>
@@ -242,9 +242,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                 systemProxyActive ? 'text-emerald-500' : 'text-muted-foreground'
               }`}
             >
-              {systemProxyActive
-                ? 'Accelerating All Mac Browsers, Streams & Apps'
-                : 'Manual Mode'}
+              {systemProxyActive ? 'Accelerating All Mac Browsers, Streams & Apps' : 'Manual Mode'}
             </span>
           </div>
           <button
@@ -342,7 +340,8 @@ export function BondingDashboardScreen(): React.JSX.Element {
                 iface.kind === 'usb' ||
                 iface.displayName.toLowerCase().includes('iphone') ||
                 iface.device.toLowerCase().includes('en5')
-              const isWifi = iface.kind === 'wifi' || iface.displayName.toLowerCase().includes('wi-fi')
+              const isWifi =
+                iface.kind === 'wifi' || iface.displayName.toLowerCase().includes('wi-fi')
               const Icon = isIphone ? Smartphone : isWifi ? Wifi : Radio
               const hasIp = iface.addresses && iface.addresses.length > 0
               const ipv4 = iface.addresses?.find(
@@ -424,7 +423,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
                       <div className="mt-3 pt-2.5 border-t border-border/40 space-y-2">
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Live Speed</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Live Speed
+                            </span>
                             <span className="font-semibold font-mono text-foreground">
                               {formatSpeed(liveDownSpeed, speedUnit)}
                             </span>
@@ -435,7 +436,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
                             )}
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Traffic Share</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Traffic Share
+                            </span>
                             <span className="font-semibold font-mono text-foreground">
                               {weight}%
                             </span>
@@ -454,8 +457,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
                       </div>
                     ) : isIphone ? (
                       <div className="mt-2.5 pt-2 border-t border-border/40 text-[10.5px] text-amber-500/90 leading-tight">
-                        Tip: In macOS <strong>System Settings › Network › iPhone USB</strong>, turn off{' '}
-                        <strong>"Disable unless needed"</strong> so macOS keeps tethering active alongside Wi-Fi.
+                        Tip: In macOS <strong>System Settings › Network › iPhone USB</strong>, turn
+                        off <strong>&ldquo;Disable unless needed&rdquo;</strong> so macOS keeps
+                        tethering active alongside Wi-Fi.
                       </div>
                     ) : null}
                   </div>
@@ -521,9 +525,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
             <div className="space-y-2.5">
               {activeDownloads.map((dl) => {
                 const percent =
-                  dl.totalBytes > 0
-                    ? Math.round((dl.bytesDownloaded / dl.totalBytes) * 100)
-                    : 0
+                  dl.totalBytes > 0 ? Math.round((dl.bytesDownloaded / dl.totalBytes) * 100) : 0
                 const isPaused = dl.status === 'paused'
 
                 return (
@@ -567,7 +569,11 @@ export function BondingDashboardScreen(): React.JSX.Element {
                           className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/70 hover:bg-accent text-foreground"
                           title={isPaused ? 'Resume download' : 'Pause download'}
                         >
-                          {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                          {isPaused ? (
+                            <Play className="h-3.5 w-3.5" />
+                          ) : (
+                            <Pause className="h-3.5 w-3.5" />
+                          )}
                         </button>
                         <button
                           onClick={() => void handleReveal(dl.id)}
@@ -614,11 +620,10 @@ export function BondingDashboardScreen(): React.JSX.Element {
                   <Download className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-xs font-semibold text-foreground">
-                No active downloads right now
-              </p>
+              <p className="text-xs font-semibold text-foreground">No active downloads right now</p>
               <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                Paste any download URL, magnet link, or drop a .torrent file to accelerate it simultaneously across Wi-Fi and iPhone USB.
+                Paste any download URL, magnet link, or drop a .torrent file to accelerate it
+                simultaneously across Wi-Fi and iPhone USB.
               </p>
               <div className="pt-1 flex items-center justify-center gap-2">
                 <button

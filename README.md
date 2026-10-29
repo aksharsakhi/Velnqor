@@ -27,18 +27,23 @@ Velnqor upgrades your laptop's networking capabilities from a single-connection 
 ## Technical Feasibility & OS Architecture
 
 ### Why Single-Stream Bonding Differs from Multi-Stream Aggregation
+
 At Layer 3/4 (IP/TCP), a single TCP stream is bound to a 4-tuple: `(Source IP, Source Port, Destination IP, Destination Port)`.
+
 - If an application sends raw packets from one TCP stream out of two different physical interfaces without a middlebox, the remote web server receives packets from two distinct IP addresses (e.g. Wi-Fi IP and Cellular carrier IP) and immediately resets the connection.
 - True packet-level aggregation for a single monolithic TCP connection requires a remote bonding VPN server or Multipath TCP (MPTCP) supported by both client and server.
 
 ### The Velnqor Solution: Native Multi-Path Dispatching & System Proxying
+
 Modern internet usage is inherently multi-stream:
+
 - Web browsers open dozens of concurrent TCP/TLS connections per page.
 - Video streaming (YouTube, Netflix, HLS/DASH) downloads media chunks in parallel HTTP requests.
 - Cloud syncing, background applications, APIs, and gaming assets operate over simultaneous channels.
 - File downloads and BitTorrent swarms fetch data as independent chunk ranges.
 
 **Velnqor achieves true bandwidth aggregation across your entire laptop** by running a high-performance local multi-WAN dispatcher:
+
 1. **OS-Native System Proxy Integration**: With one click, Velnqor configures macOS network services (`networksetup`) to route laptop traffic through Velnqor's engine.
 2. **Multi-WAN Outbound Socket Binding**: For each outgoing connection, Velnqor binds the outbound socket to the specific physical interface address (`localAddress`). On macOS and Windows, outbound routing naturally follows the source IP!
 3. **Adaptive Load Balancing & Failover**: Traffic is dynamically weighted using real-time EWMA latency and bandwidth metrics. If an interface drops (e.g., iPhone cable disconnected), connections immediately fail over to the surviving link without breaking your session.
@@ -49,6 +54,7 @@ Modern internet usage is inherently multi-stream:
 ## Features
 
 ### ⚡ System-Wide Multi-Network Bonding
+
 - **Automatic Connection Discovery**: Real-time detection of Wi-Fi, Ethernet, iPhone USB tethering, and secondary adapters.
 - **Laptop-Wide Traffic Distribution**: Automatically accelerates Chrome, Safari, Spotify, Slack, Discord, Steam, Git, and streaming.
 - **Multiple Bonding Policies**:
@@ -59,6 +65,7 @@ Modern internet usage is inherently multi-stream:
 - **Real-Time Speed & Flow Telemetry**: Live combined aggregate throughput meter and active connection inspector.
 
 ### 📥 Built-in Download Acceleration
+
 - HTTP range-chunk multiplexing for large files.
 - BitTorrent swarm peer distribution across all active adapters.
 - Pause, resume, auto-retry, and schedule downloads.
@@ -98,12 +105,12 @@ npm ci
 npm run dev
 ```
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Starts Velnqor in development mode |
+| Command             | Description                                               |
+| ------------------- | --------------------------------------------------------- |
+| `npm run dev`       | Starts Velnqor in development mode                        |
 | `npm run typecheck` | Validates TypeScript across node, web, e2e, and extension |
-| `npm run build` | Builds production bundle with electron-vite |
-| `npm run build:mac` | Packages macOS application |
+| `npm run build`     | Builds production bundle with electron-vite               |
+| `npm run build:mac` | Packages macOS application                                |
 
 ---
 

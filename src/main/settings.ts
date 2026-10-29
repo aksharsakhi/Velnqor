@@ -126,6 +126,9 @@ function sanitizeSettings(parsed: unknown): AppSettings {
     settings.speedUnit = parsed.speedUnit
   }
   if (parsed.browserExtensionUsed === true) settings.browserExtensionUsed = true
+  if (typeof parsed.backgroundActivityEnabled === 'boolean') {
+    settings.backgroundActivityEnabled = parsed.backgroundActivityEnabled
+  }
   return settings
 }
 

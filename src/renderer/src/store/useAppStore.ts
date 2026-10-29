@@ -109,7 +109,6 @@ interface AppStore {
   receiveBondingState: (state: BondingState) => void
 }
 
-
 // Settings saved by the main process, read once before the first paint (see InitialState).
 const initial = window.plexo.initialState
 
@@ -135,8 +134,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   downloads: {},
   history: [],
-  view: { name: 'bonding' },
-  activeTab: 'bonding',
+  view: { name: 'list' },
+  activeTab: 'downloads',
   setActiveTab: (activeTab) =>
     set({
       activeTab,
@@ -168,7 +167,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     recentFlows: [],
     error: null
   },
-
 
   draftUrl: '',
   links: [],
@@ -231,10 +229,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ downloads, history: get().history.filter((entry) => entry.id !== id) })
   },
 
-  setView: (view) => set({ view }),
+  setView: (view) =>
+    set({
+      view,
+      activeTab: view.name === 'bonding' ? 'bonding' : 'downloads'
+    }),
 
   openNewDownload: (link) =>
-    set(link === undefined ? { newDownloadOpen: true } : { newDownloadOpen: true, draftUrl: link }),
+    set({
+      newDownloadOpen: true,
+      ...(link !== undefined ? { draftUrl: link } : {}),
+      activeTab: 'downloads',
+      view: { name: 'list' }
+    }),
 
   closeNewDownload: () => {
     const { links, shownId } = get()
@@ -315,7 +322,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       const state = await window.velnqor.getBondingState()
       set({ bondingState: state })
-    } catch {}
+    } catch {
+      // Ignore initial bonding state fetch error before engine is ready
+    }
   },
 
   toggleBonding: async () => {
@@ -363,4 +372,3 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   receiveBondingState: (bondingState) => set({ bondingState })
 }))
-

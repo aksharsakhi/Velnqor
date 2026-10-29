@@ -1,5 +1,5 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
+import { app, BrowserWindow, Menu, nativeTheme, shell } from 'electron'
 import { join } from 'path'
 import icon from '../../resources/icon-dark.png?asset'
 import { registerIpcHandlers, bondingManagerInstance } from './ipc/handlers'
@@ -9,6 +9,7 @@ import { loadSettings, loadThemeSource, migrateLegacyNetworkPreferences } from '
 import { startUpdater } from './updater'
 import { testKnobs } from './testKnobs'
 import type { DownloadManager } from './download/downloadManager'
+import { MenuBarManager } from './menuBar'
 
 // In dev mode the app runs as the raw `electron` binary, which otherwise shows "Electron" in
 // the Dock tooltip/menu bar — must be set before the app is ready. Packaged builds already get
@@ -25,7 +26,7 @@ if (!app.requestSingleInstanceLock()) app.exit(0)
 let mainWindow: BrowserWindow | null = null
 let downloadManager: DownloadManager | null = null
 let quitAfterSuspending = false
-let tray: Tray | null = null
+let menuBarManager: MenuBarManager | null = null
 
 /** Only once the app is ready. */
 function ensureWindow(): BrowserWindow {
@@ -75,8 +76,8 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 740,
-    minWidth: 820,
-    minHeight: 660,
+    minWidth: 720,
+    minHeight: 620,
     show: false,
     autoHideMenuBar: true,
     title: 'Velnqor',
@@ -107,8 +108,18 @@ function createWindow(): void {
     if (!testKnobs.hideWindow) mainWindow?.show()
   })
 
+  mainWindow.on('close', (event) => {
+    if (quitAfterSuspending) return
+    if (menuBarManager?.isBackgroundActivityEnabled()) {
+      event.preventDefault()
+      mainWindow?.hide()
+      menuBarManager.updateMenu()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
+    menuBarManager?.updateMenu()
   })
 
   // Prevent renderer from navigating to arbitrary external web pages
@@ -134,9 +145,11 @@ function createWindow(): void {
   })
 
   // Deny permission requests for sensitive APIs (mic, camera, geolocation)
-  mainWindow.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => {
-    callback(false)
-  })
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, _permission, callback) => {
+      callback(false)
+    }
+  )
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     // Only hand http(s) links to the OS shell — an arbitrary scheme (e.g. a custom protocol
@@ -196,6 +209,15 @@ app.whenReady().then(async () => {
     manager: downloadManager,
     offer: (link) => offerLink(link, ensureWindow())
   }).catch((error) => console.error('[velnqor] browser bridge failed to start', error))
+
+  menuBarManager = new MenuBarManager({
+    getWindow: () => mainWindow,
+    ensureWindow,
+    bondingManager: () => bondingManagerInstance,
+    downloadManager: () => downloadManager
+  })
+  await menuBarManager.init().catch((err) => console.error('[velnqor] menu bar init failed', err))
+
   // Unlike magnet:, velnqor:// is Velnqor's own, so registering it takes nothing from another app. A
   // development build has no fixed path to register.
   if (app.isPackaged) app.setAsDefaultProtocolClient('velnqor')
@@ -210,11 +232,17 @@ app.whenReady().then(async () => {
   startUpdater(() => mainWindow, (await loadSettings()).autoUpdate !== false)
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+    } else {
+      createWindow()
+    }
   })
 })
 
 app.on('before-quit', (event) => {
+  menuBarManager?.destroy()
   void bondingManagerInstance?.cleanup()
   if (quitAfterSuspending || !downloadManager) return
 
@@ -233,18 +261,7 @@ app.on('before-quit', (event) => {
 })
 
 app.on('window-all-closed', () => {
+  if (menuBarManager?.isBackgroundActivityEnabled()) return
   if (process.platform === 'darwin') return
   if (!keepsRunningForBrowser()) return app.quit()
-  // Kept running in the tray, so the browser extension can still reach it.
-  if (tray) return
-  tray = new Tray(nativeImage.createFromPath(icon).resize({ width: 16, height: 16 }))
-  tray.setToolTip('Velnqor')
-  tray.on('click', () => bringForward(ensureWindow()))
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open Velnqor', click: () => bringForward(ensureWindow()) },
-      { type: 'separator' },
-      { label: 'Quit Velnqor', click: () => app.quit() }
-    ])
-  )
 })

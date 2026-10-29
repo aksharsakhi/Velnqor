@@ -128,8 +128,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore
+  // @ts-ignore (assign fallback on non-contextIsolated window object)
   window.velnqor = plexoApi
-  // @ts-ignore
+  // @ts-ignore (assign legacy fallback on non-contextIsolated window object)
   window.plexo = plexoApi
 }

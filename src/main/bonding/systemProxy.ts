@@ -83,11 +83,9 @@ export class SystemProxyManager {
             '127.0.0.1',
             String(socksPort)
           ]).catch(() => {})
-          await execFileAsync('networksetup', [
-            '-setsocksfirewallproxystate',
-            service,
-            'on'
-          ]).catch(() => {})
+          await execFileAsync('networksetup', ['-setsocksfirewallproxystate', service, 'on']).catch(
+            () => {}
+          )
         }
 
         this.isConfigured = true
@@ -138,15 +136,11 @@ export class SystemProxyManager {
     if (process.platform === 'darwin') {
       try {
         const services =
-          this.activeServices.length > 0
-            ? this.activeServices
-            : await this.getMacNetworkServices()
+          this.activeServices.length > 0 ? this.activeServices : await this.getMacNetworkServices()
 
         for (const service of services) {
           if (!isValidServiceName(service)) continue
-          await execFileAsync('networksetup', ['-setwebproxystate', service, 'off']).catch(
-            () => {}
-          )
+          await execFileAsync('networksetup', ['-setwebproxystate', service, 'off']).catch(() => {})
           await execFileAsync('networksetup', ['-setsecurewebproxystate', service, 'off']).catch(
             () => {}
           )
@@ -227,10 +221,14 @@ export class SystemProxyManager {
                 execFileSync('networksetup', ['-setsocksfirewallproxystate', service, 'off'], {
                   timeout: 1500
                 })
-              } catch {}
+              } catch {
+                // Best-effort cleanup per service on process exit
+              }
             }
           }
-        } catch {}
+        } catch {
+          // Best-effort global teardown on process exit
+        }
       }
     }
 
@@ -245,4 +243,3 @@ export class SystemProxyManager {
     })
   }
 }
-

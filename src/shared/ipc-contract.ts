@@ -74,4 +74,3 @@ export interface IpcContract {
   toggleSystemProxy: { args: [enable?: boolean]; result: boolean }
   runSpeedTest: { args: []; result: void }
 }
-

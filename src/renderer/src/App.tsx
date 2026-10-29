@@ -44,15 +44,15 @@ function renderDownload(download: DownloadState | FinishedDownload): React.JSX.E
 /** The screen shown: bonding dashboard, download detail, or download list. */
 function CurrentScreen(): React.JSX.Element {
   const view = useAppStore((store) => store.view)
+  const shown = useAppStore((store) => {
+    if (view.name !== 'download') return null
+    return store.downloads[view.id] ?? store.history.find((entry) => entry.id === view.id) ?? null
+  })
 
   if (view.name === 'bonding') {
     return <BondingDashboardScreen />
   }
 
-  const shown = useAppStore((store) => {
-    if (view.name !== 'download') return null
-    return store.downloads[view.id] ?? store.history.find((entry) => entry.id === view.id) ?? null
-  })
   const cancelled = shown && !('unitsWritten' in shown) && shown.status === 'cancelled'
   return shown && !cancelled ? renderDownload(shown) : <DownloadsScreen />
 }

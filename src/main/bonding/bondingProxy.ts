@@ -1,9 +1,5 @@
 import { createServer, Server as NetServer, Socket } from 'node:net'
-import type {
-  ActiveFlow,
-  BondingStrategy,
-  InterfaceBondingMetric
-} from '../../shared/bondingTypes'
+import type { ActiveFlow, BondingStrategy, InterfaceBondingMetric } from '../../shared/bondingTypes'
 import type { NetworkInterfaceInfo } from '../../shared/types'
 
 interface InterfaceStats {
@@ -201,7 +197,7 @@ export class BondingProxyServer {
 
             // Rewrite absolute proxy URI "GET http://host/path HTTP/1.1" to "GET /path HTTP/1.1"
             const rewrittenStr = dataStr.replace(
-              /^([A-Z]+)\s+https?:\/\/[^\/\s]+(\/[^\s]*)?\s+(HTTP\/\d\.\d)/i,
+              /^([A-Z]+)\s+https?:\/\/[^/\s]+(\/[^\s]*)?\s+(HTTP\/\d\.\d)/i,
               (_m, mthd, path, ver) => `${mthd} ${path || '/'} ${ver}`
             )
             const payload = Buffer.from(rewrittenStr)
@@ -319,83 +315,90 @@ export class BondingProxyServer {
     onConnect?: (outboundSocket: Socket) => void
   ): void {
     const selectedIface = this.selectInterface()
-    const allInterfaces = this.getInterfaces().filter(
-      (i) => i.addresses && i.addresses.length > 0
-    )
+    const allInterfaces = this.getInterfaces().filter((i) => i.addresses && i.addresses.length > 0)
 
     // Attempt connecting via chosen interface, with instant fallback if it fails
-    this.connectViaInterface(selectedIface, allInterfaces, host, port, (err, outboundSocket, finalIface) => {
-      if (err || !outboundSocket || !finalIface) {
-        clientSocket.destroy()
-        return
-      }
-
-      const ifaceId = finalIface.id
-      let stats = this.interfaceStats.get(ifaceId)
-      if (!stats) {
-        stats = {
-          bytesDown: 0,
-          bytesUp: 0,
-          totalBytesDown: 0,
-          totalBytesUp: 0,
-          activeConnections: 0,
-          lastSecondDown: 0,
-          lastSecondUp: 0,
-          latencyMs: 25,
-          status: 'healthy'
+    this.connectViaInterface(
+      selectedIface,
+      allInterfaces,
+      host,
+      port,
+      (err, outboundSocket, finalIface) => {
+        if (err || !outboundSocket || !finalIface) {
+          clientSocket.destroy()
+          return
         }
-        this.interfaceStats.set(ifaceId, stats)
+
+        const ifaceId = finalIface.id
+        let stats = this.interfaceStats.get(ifaceId)
+        if (!stats) {
+          stats = {
+            bytesDown: 0,
+            bytesUp: 0,
+            totalBytesDown: 0,
+            totalBytesUp: 0,
+            activeConnections: 0,
+            lastSecondDown: 0,
+            lastSecondUp: 0,
+            latencyMs: 25,
+            status: 'healthy'
+          }
+          this.interfaceStats.set(ifaceId, stats)
+        }
+
+        stats.activeConnections++
+
+        // Record active flow for UI
+        const flowId = `flow-${++this.flowCounter}`
+        const flow: ActiveFlow = {
+          id: flowId,
+          host,
+          port,
+          protocol,
+          interfaceId: finalIface.id,
+          interfaceName: finalIface.displayName || finalIface.device,
+          startTime: Date.now(),
+          bytesTransferred: 0,
+          speedBytesPerSec: 0,
+          active: true
+        }
+        this.flows.unshift(flow)
+        if (this.flows.length > 50) this.flows.pop()
+
+        // Pipe data with real-time throughput metrics
+        clientSocket.on('data', (chunk) => {
+          stats!.bytesUp += chunk.length
+          stats!.totalBytesUp += chunk.length
+          flow.bytesTransferred += chunk.length
+        })
+
+        outboundSocket.on('data', (chunk) => {
+          stats!.bytesDown += chunk.length
+          stats!.totalBytesDown += chunk.length
+          flow.bytesTransferred += chunk.length
+        })
+
+        clientSocket.pipe(outboundSocket)
+        outboundSocket.pipe(clientSocket)
+
+        let cleanedUp = false
+        const cleanup = (): void => {
+          if (cleanedUp) return
+          cleanedUp = true
+          stats!.activeConnections = Math.max(0, stats!.activeConnections - 1)
+          flow.active = false
+          clientSocket.destroy()
+          outboundSocket.destroy()
+        }
+
+        clientSocket.once('close', cleanup)
+        outboundSocket.once('close', cleanup)
+        clientSocket.once('error', cleanup)
+        outboundSocket.once('error', cleanup)
+
+        if (onConnect) onConnect(outboundSocket)
       }
-
-      stats.activeConnections++
-
-      // Record active flow for UI
-      const flowId = `flow-${++this.flowCounter}`
-      const flow: ActiveFlow = {
-        id: flowId,
-        host,
-        port,
-        protocol,
-        interfaceId: finalIface.id,
-        interfaceName: finalIface.displayName || finalIface.device,
-        startTime: Date.now(),
-        bytesTransferred: 0,
-        speedBytesPerSec: 0,
-        active: true
-      }
-      this.flows.unshift(flow)
-      if (this.flows.length > 50) this.flows.pop()
-
-      // Pipe data with real-time throughput metrics
-      clientSocket.on('data', (chunk) => {
-        stats!.bytesUp += chunk.length
-        stats!.totalBytesUp += chunk.length
-        flow.bytesTransferred += chunk.length
-      })
-
-      outboundSocket.on('data', (chunk) => {
-        stats!.bytesDown += chunk.length
-        stats!.totalBytesDown += chunk.length
-        flow.bytesTransferred += chunk.length
-      })
-
-      clientSocket.pipe(outboundSocket)
-      outboundSocket.pipe(clientSocket)
-
-      const cleanup = (): void => {
-        stats!.activeConnections = Math.max(0, stats!.activeConnections - 1)
-        flow.active = false
-        clientSocket.destroy()
-        outboundSocket.destroy()
-      }
-
-      clientSocket.once('close', cleanup)
-      outboundSocket.once('close', cleanup)
-      clientSocket.once('error', cleanup)
-      outboundSocket.once('error', cleanup)
-
-      if (onConnect) onConnect(outboundSocket)
-    })
+    )
   }
 
   /**
@@ -451,8 +454,10 @@ export class BondingProxyServer {
         callback(null, socket, currentIface)
       })
 
+      let failed = false
       const handleFail = (): void => {
-        if (!connected) {
+        if (!connected && !failed) {
+          failed = true
           socket.destroy()
           tryNext()
         }
@@ -537,7 +542,11 @@ export class BondingProxyServer {
     }
   }
 
-  updateLatency(ifaceId: string, latencyMs: number, status: 'healthy' | 'degraded' | 'offline'): void {
+  updateLatency(
+    ifaceId: string,
+    latencyMs: number,
+    status: 'healthy' | 'degraded' | 'offline'
+  ): void {
     const stat = this.interfaceStats.get(ifaceId)
     if (stat) {
       stat.latencyMs = latencyMs
@@ -572,4 +581,3 @@ export class BondingProxyServer {
     if (this.flows.length > 50) this.flows.pop()
   }
 }
-

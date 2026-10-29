@@ -91,7 +91,13 @@ linux:
   maintainer: electronjs.org
   category: Utility
   # Offered for magnet links and .torrent files ("Open with"), not made their default.
-  mimeTypes: [x-scheme-handler/magnet, application/x-bittorrent, x-scheme-handler/velnqor, x-scheme-handler/plexo]
+  mimeTypes:
+    [
+      x-scheme-handler/magnet,
+      application/x-bittorrent,
+      x-scheme-handler/velnqor,
+      x-scheme-handler/plexo
+    ]
 appImage:
   artifactName: ${name}-${version}-${arch}.${ext}
 deb:

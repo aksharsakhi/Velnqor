@@ -376,6 +376,7 @@ export interface AppSettings {
   /** How speeds are shown everywhere; sizes stay in bytes either way. */
   speedUnit?: SpeedUnit
   browserExtensionUsed?: boolean
+  backgroundActivityEnabled?: boolean
 }
 
 /** bytes: MB/s. bits: Mbps, as internet plans and speed tests count them. */

@@ -143,7 +143,6 @@ export const DownloadingScreen = memo(function DownloadingScreen({
     return () => {
       document.title = 'Velnqor'
     }
-
   }, [percent, knownSize, isPaused, isQueued])
 
   const totalPausedMs =
