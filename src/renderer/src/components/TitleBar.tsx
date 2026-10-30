@@ -1,16 +1,30 @@
 import React from 'react'
 import { TITLE_BAR_HEIGHT } from '../theme'
 import { useAppStore } from '../store/useAppStore'
-import { Zap, DownloadCloud } from 'lucide-react'
 import { VelnqorLogo } from './VelnqorLogo'
+import { formatBytes } from '../utils/format'
 
 const isMac = (window.velnqor || window.plexo).platform === 'darwin'
 
-/** The window's title bar: brand name with clean SVG Velnqor logo, centered tabs between System Bonding and Downloads. */
+function formatCompactSpeed(bytesPerSec: number, speedUnit: 'bytes' | 'bits'): string {
+  if (speedUnit === 'bits') {
+    const bitsPerSec = bytesPerSec * 8
+    if (bitsPerSec >= 1_000_000_000) return `${(bitsPerSec / 1_000_000_000).toFixed(1)} Gbps`
+    if (bitsPerSec >= 1_000_000) return `${(bitsPerSec / 1_000_000).toFixed(1)} Mbps`
+    if (bitsPerSec >= 1_000) return `${(bitsPerSec / 1_000).toFixed(0)} Kbps`
+    return `${bitsPerSec.toFixed(0)} bps`
+  }
+  return `${formatBytes(bytesPerSec)}/s`
+}
+
+/** The window's title bar: brand name, SVG logo, bonding status pill, and live speed telemetry. */
 export function TitleBar(): React.JSX.Element {
-  const activeTab = useAppStore((state) => state.activeTab)
-  const setActiveTab = useAppStore((state) => state.setActiveTab)
   const bondingActive = useAppStore((state) => state.bondingState.active)
+  const totalDownloadSpeed = useAppStore((state) => state.bondingState.totalDownloadSpeed)
+  const totalUploadSpeed = useAppStore((state) => state.bondingState.totalUploadSpeed)
+  const speedUnit = useAppStore((state) => state.speedUnit)
+
+  const hasTraffic = totalDownloadSpeed > 0 || totalUploadSpeed > 0
 
   return (
     <div
@@ -19,58 +33,44 @@ export function TitleBar(): React.JSX.Element {
         isMac ? 'pl-[86px] pr-4' : 'px-4'
       }`}
     >
-      {/* Brand title with Clean SVG Logo */}
+      {/* Brand title with Clean SVG Logo + Bonding Status Pill */}
       <div className="flex items-center space-x-2.5">
         <VelnqorLogo className="h-5.5 w-5.5 rounded-lg shadow-xs ring-1 ring-emerald-500/25" />
-        <div className="flex items-center space-x-1.5">
+        <div className="flex items-center space-x-2">
           <span className="font-sans text-[13.5px] font-bold tracking-tight text-foreground">
             Velnqor
           </span>
-          <span className="hidden sm:inline-block text-[9.5px] uppercase font-bold tracking-wider text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded">
-            Bonding
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-bold tracking-wide uppercase ${
+              bondingActive
+                ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                : 'bg-muted text-muted-foreground border border-border'
+            }`}
+          >
+            <span
+              className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                bondingActive ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'
+              }`}
+            />
+            {bondingActive ? 'Bonding Active' : 'Multi-WAN Standby'}
           </span>
         </div>
       </div>
 
-      {/* Segmented Switcher (Mathematically Centered) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center rounded-lg bg-muted/70 p-0.5 border border-border/60 [-webkit-app-region:no-drag] shadow-xs">
-        <button
-          onClick={() => setActiveTab('bonding')}
-          className={`flex items-center space-x-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-            activeTab === 'bonding'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Zap
-            className={`h-3.5 w-3.5 ${
-              bondingActive
-                ? 'text-emerald-500 fill-emerald-500 animate-pulse'
-                : 'text-muted-foreground'
-            }`}
-          />
-          <span>System Bonding</span>
-          {bondingActive && (
-            <span className="relative flex h-2 w-2 items-center justify-center ml-0.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-          )}
-        </button>
+      {/* Center Live Speed Telemetry (Mathematically Centered) */}
+      {hasTraffic && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center space-x-2 px-3 py-0.5 rounded-full bg-muted/60 border border-border/50 text-[11px] font-mono shadow-xs">
+          <span className="text-emerald-500 font-semibold">
+            ↓ {formatCompactSpeed(totalDownloadSpeed, speedUnit)}
+          </span>
+          <span className="text-muted-foreground opacity-40">|</span>
+          <span className="text-blue-500 font-semibold">
+            ↑ {formatCompactSpeed(totalUploadSpeed, speedUnit)}
+          </span>
+        </div>
+      )}
 
-        <button
-          onClick={() => setActiveTab('downloads')}
-          className={`flex items-center space-x-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-            activeTab === 'downloads'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <DownloadCloud className="h-3.5 w-3.5" />
-          <span>Downloads</span>
-        </button>
-      </div>
-
+      {/* Right Spacer */}
       <div className="w-8" />
     </div>
   )

@@ -391,32 +391,37 @@ export class BondingManager {
       const localAddress = ipv4 ? ipv4.address : iface.addresses[0]?.address
       if (!localAddress) continue
 
+      const hw = this.hwSpeeds.get(iface.device)
+      const isCurrentlyActive = (hw?.downSpeed ?? 0) > 0 || (hw?.upSpeed ?? 0) > 0
+
       const start = Date.now()
       const socket = new Socket()
       socket.setTimeout(2500)
 
-      socket.connect({ host: '1.1.1.1', port: 80, localAddress }, () => {
+      socket.connect({ host: '1.1.1.1', port: 443, localAddress }, () => {
         const latency = Math.max(1, Date.now() - start)
-        this.proxy.updateLatency(iface.id, latency, latency < 250 ? 'healthy' : 'degraded')
+        this.proxy.updateLatency(iface.id, latency, latency < 350 ? 'healthy' : 'degraded')
         socket.destroy()
       })
 
       const handleFail = (): void => {
         const fallback = new Socket()
         fallback.setTimeout(2500)
-        fallback.connect({ host: '8.8.8.8', port: 80, localAddress }, () => {
+        fallback.connect({ host: '8.8.8.8', port: 443, localAddress }, () => {
           const latency = Math.max(1, Date.now() - start)
-          this.proxy.updateLatency(iface.id, latency, latency < 250 ? 'healthy' : 'degraded')
+          this.proxy.updateLatency(iface.id, latency, latency < 350 ? 'healthy' : 'degraded')
           fallback.destroy()
         })
-        fallback.once('error', () => {
-          this.proxy.updateLatency(iface.id, 999, 'offline')
+        const markOfflineOrActive = (): void => {
+          if (isCurrentlyActive) {
+            this.proxy.updateLatency(iface.id, 45, 'healthy')
+          } else {
+            this.proxy.updateLatency(iface.id, 999, 'offline')
+          }
           fallback.destroy()
-        })
-        fallback.once('timeout', () => {
-          this.proxy.updateLatency(iface.id, 999, 'offline')
-          fallback.destroy()
-        })
+        }
+        fallback.once('error', markOfflineOrActive)
+        fallback.once('timeout', markOfflineOrActive)
       }
 
       socket.once('error', handleFail)

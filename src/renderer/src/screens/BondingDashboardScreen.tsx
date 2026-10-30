@@ -1,32 +1,44 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Activity,
   AlertCircle,
   ArrowDown,
   ArrowUp,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ClipboardPaste,
   ExternalLink,
+  Gauge,
   Globe,
   Layers,
+  Play,
+  Plus,
   Radio,
   RefreshCw,
   ShieldCheck,
   Smartphone,
   Wifi,
-  Zap,
-  Play,
-  Gauge,
-  Download,
-  Plus,
-  Pause,
-  FolderOpen,
   X,
-  ClipboardPaste,
-  FileText
+  Zap
 } from 'lucide-react'
 import type { BondingStrategy } from '@shared/bondingTypes'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes } from '../utils/format'
+import { useDownloadActions, useDownloadActionsState } from '../components/downloadActionsContext'
+import { ACTION_META, toolbarLabel } from '../components/downloadActionMeta'
+import { MoreActionsMenu } from '../components/MoreActionsMenu'
+import { DownloadFilterMenu } from '../components/DownloadFilterMenu'
+import { LimitsDialog } from '../components/LimitsDialog'
+import { ScheduleIndicator } from '../components/ScheduleIndicator'
+import { NetworksMenu } from '../components/NetworksMenu'
+import { Button } from '../components/ui/button'
+import { Checkbox } from '../components/ui/checkbox'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
+import { useNetworkVisuals } from '../hooks/useNetworkVisuals'
+import { availableActions, isFinished, splitToolbar } from '../utils/downloadActions'
+import { EmptyState, ListedDownload } from './DownloadsScreen'
+import { filterOf, groupLabelClass, groupsOf, NOT_CHOSEN, summaryOf } from '../utils/downloadGroups'
 
 function formatSpeed(bytesPerSec: number, speedUnit: 'bytes' | 'bits'): string {
   if (speedUnit === 'bits') {
@@ -48,11 +60,15 @@ export function BondingDashboardScreen(): React.JSX.Element {
     toggleSystemProxy,
     runSpeedTest,
     interfaces,
+    interfacesStatus,
     loadInterfaces,
     speedUnit,
-    downloads,
+    downloads: downloadsById,
     history,
-    openNewDownload
+    openNewDownload,
+    setView,
+    downloadFilter: filter,
+    setDownloadFilter: setFilter
   } = useAppStore()
 
   const {
@@ -70,16 +86,114 @@ export function BondingDashboardScreen(): React.JSX.Element {
   } = bondingState
 
   const [quickUrl, setQuickUrl] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const { perform, askClearFinished } = useDownloadActions()
+  const { busy } = useDownloadActionsState()
+  const [limitsOpen, setLimitsOpen] = useState(false)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [limitsPage, setLimitsPage] = useState<string | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const activeInterfaces = interfaces.filter((i) => i.addresses && i.addresses.length > 0)
 
-  const downloadList = Object.values(downloads).filter((d) => d.status !== 'cancelled')
+  const downloadsList = Object.values(downloadsById ?? {})
+    .filter((download) => download && download.status !== 'cancelled')
+    .sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0))
+  const allGroups = groupsOf(downloadsList, history ?? [])
+  const allItems = allGroups.flatMap((group) => group.items)
+  const counts: Record<import('../store/useAppStore').DownloadFilter, number> = {
+    all: allItems.length,
+    progress: 0,
+    finished: 0,
+    failed: 0
+  }
+  for (const item of allItems) counts[filterOf(item)]++
+  const groups = allGroups.filter(
+    (group) => filter === 'all' || filterOf(group.items[0]) === filter
+  )
+  const items = groups.flatMap((group) => group.items)
+  const chosen = items.filter((item) => selected.has(item.id))
 
-  const activeDownloads = downloadList.filter(
-    (d) => d.status === 'downloading' || d.status === 'queued' || d.status === 'paused'
+  const toggle = useCallback(
+    (ids: string[], on: boolean): void =>
+      setSelected((previous) => {
+        const next = new Set(previous)
+        for (const id of ids) {
+          if (on) next.add(id)
+          else next.delete(id)
+        }
+        return next
+      }),
+    []
   )
 
-  const completedDownloads = history.slice(0, 5)
+  const networkVisual = useNetworkVisuals()
+  const selectRow = useCallback((id: string, on: boolean) => toggle([id], on), [toggle])
+  const openRow = useCallback((id: string) => setView({ name: 'download', id }), [setView])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target
+      if (
+        event.defaultPrevented ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(target.tagName))) ||
+        document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')
+      )
+        return
+      const command = window.plexo.platform === 'darwin' ? event.metaKey : event.ctrlKey
+      if (event.key === 'Escape') setSelected(new Set())
+      else if (command && event.key.toLowerCase() === 'a') {
+        event.preventDefault()
+        setSelected(new Set(items.map((item) => item.id)))
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        const id = command ? 'trash' : 'remove'
+        const action = availableActions(chosen)
+          .flat()
+          .find((available) => available.id === id)
+        if (!action) return
+        event.preventDefault()
+        void perform(id, action.targets)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [items, chosen, perform])
+
+  const { buttons: toolbarButtons, more: moreActions } = splitToolbar(availableActions(chosen))
+
+  const openSchedule = (): void => {
+    setLimitsPage(null)
+    setShowSchedule(true)
+    setLimitsOpen(true)
+  }
+
+  const handleTestSpeed = async (): Promise<void> => {
+    await runSpeedTest()
+  }
+
+  const handleQuickDownload = (): void => {
+    if (!quickUrl.trim()) return
+    openNewDownload(quickUrl.trim())
+    setQuickUrl('')
+  }
+
+  const handlePasteClipboard = async (): Promise<void> => {
+    try {
+      const text = await (window.velnqor || window.plexo).readClipboardText()
+      if (text && text.trim()) {
+        setQuickUrl(text.trim())
+      }
+    } catch {
+      // Ignore clipboard read errors if inaccessible
+    }
+  }
 
   const strategies: {
     id: BondingStrategy
@@ -113,47 +227,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
     }
   ]
 
-  const handleTestSpeed = async (): Promise<void> => {
-    await runSpeedTest()
-  }
-
-  const handleQuickDownload = (): void => {
-    if (!quickUrl.trim()) return
-    openNewDownload(quickUrl.trim())
-    setQuickUrl('')
-  }
-
-  const handlePasteClipboard = async (): Promise<void> => {
-    try {
-      const text = await (window.velnqor || window.plexo).readClipboardText()
-      if (text && text.trim()) {
-        setQuickUrl(text.trim())
-      }
-    } catch {
-      // Ignore clipboard read errors if inaccessible
-    }
-  }
-
-  const handlePauseResume = async (id: string, isPaused: boolean): Promise<void> => {
-    const api = window.velnqor || window.plexo
-    if (isPaused) {
-      await api.resumeDownload(id)
-    } else {
-      await api.pauseDownload(id)
-    }
-  }
-
-  const handleCancel = async (id: string): Promise<void> => {
-    await (window.velnqor || window.plexo).cancelDownload(id)
-  }
-
-  const handleReveal = async (id: string): Promise<void> => {
-    await (window.velnqor || window.plexo).revealDownload(id)
-  }
-
   return (
     <div className="flex h-full flex-col text-foreground select-none overflow-hidden bg-background">
-      {/* 1. FIXED TOP COMMAND BAR (Non-scrolling, Never clipped by TitleBar) */}
+      {/* 1. UNIFIED COMMAND BAR (Non-scrolling, Integrated Controls) */}
       <div className="shrink-0 border-b border-border/80 bg-card/90 px-6 py-3.5 backdrop-blur-md shadow-sm">
         <div className="flex flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5 min-w-0">
@@ -194,11 +270,27 @@ export function BondingDashboardScreen(): React.JSX.Element {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5 shrink-0">
+          {/* Header Action Controls: Proxy Mode + Benchmark + Bonding Toggle */}
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={() => void toggleSystemProxy()}
+              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95 ${
+                systemProxyActive
+                  ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400'
+                  : 'border-border/80 bg-card hover:bg-accent text-muted-foreground hover:text-foreground'
+              }`}
+              title="Route all Mac browser & app traffic through bonded tunnel"
+            >
+              <Globe
+                className={`h-3.5 w-3.5 ${systemProxyActive ? 'text-emerald-400' : 'text-blue-500'}`}
+              />
+              <span>{systemProxyActive ? '✓ Mac Proxy On' : 'Route Mac Traffic'}</span>
+            </button>
+
             <button
               onClick={() => void handleTestSpeed()}
               disabled={isSpeedTesting}
-              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all active:scale-95 ${
+              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95 ${
                 isSpeedTesting
                   ? 'border-blue-500/40 bg-blue-500/10 text-blue-500'
                   : 'border-border/80 bg-card hover:bg-accent text-foreground'
@@ -231,34 +323,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
             <span>{error}</span>
           </div>
         )}
-
-        {/* System Proxy Sub-strip */}
-        <div className="mt-2.5 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            <Globe className="h-3.5 w-3.5 text-blue-500" />
-            <span>Route Entire Mac Traffic:</span>
-            <span
-              className={`font-semibold ${
-                systemProxyActive ? 'text-emerald-500' : 'text-muted-foreground'
-              }`}
-            >
-              {systemProxyActive ? 'Accelerating All Mac Browsers, Streams & Apps' : 'Manual Mode'}
-            </span>
-          </div>
-          <button
-            onClick={() => void toggleSystemProxy()}
-            className={`text-[10.5px] px-2.5 py-1 rounded-lg border font-medium transition-colors ${
-              systemProxyActive
-                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
-                : 'border-border bg-card/80 hover:bg-accent text-foreground'
-            }`}
-          >
-            {systemProxyActive ? '✓ Mac System Proxy On' : 'Enable Mac-Wide Proxy'}
-          </button>
-        </div>
       </div>
 
-      {/* 2. SCROLLABLE DASHBOARD BODY */}
+      {/* 2. SCROLLABLE UNIFIED BODY */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-14 space-y-6 text-foreground">
         {/* Real-Time Aggregate Speedometer Cards */}
         <div className="grid grid-cols-2 gap-4">
@@ -315,10 +382,10 @@ export function BondingDashboardScreen(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Detected Hardware Network Adapters (Side-by-Side) */}
+        {/* Detected Hardware Network Adapters */}
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
               <span>Detected Network Adapters</span>
               <span className="text-[11px] text-muted-foreground font-mono">
                 ({interfaces.length} available)
@@ -328,7 +395,9 @@ export function BondingDashboardScreen(): React.JSX.Element {
               onClick={() => void loadInterfaces()}
               className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw
+                className={`h-3 w-3 ${interfacesStatus === 'loading' ? 'animate-spin text-emerald-500' : ''}`}
+              />
               <span>Scan Networks</span>
             </button>
           </div>
@@ -348,10 +417,11 @@ export function BondingDashboardScreen(): React.JSX.Element {
                 (a) => a.family === 4 || (a.family as unknown as string) === 'IPv4'
               )
               const ip = ipv4?.address || (hasIp ? iface.addresses[0].address : 'No IP assigned')
-              const isHealthy = metric ? metric.status !== 'offline' : hasIp
               const liveDownSpeed = metric?.downloadSpeedBytesPerSec || 0
               const liveUpSpeed = metric?.uploadSpeedBytesPerSec || 0
-              const weight = metric?.weight ?? 50
+              const isLiveActive = liveDownSpeed > 0 || liveUpSpeed > 0
+              const isHealthy = hasIp && (isLiveActive || !metric || metric.status !== 'offline')
+              const weight = metric?.weight ?? (hasIp ? 50 : 0)
 
               return (
                 <div
@@ -391,17 +461,25 @@ export function BondingDashboardScreen(): React.JSX.Element {
                         </div>
                       </div>
 
+                      {/* Health & Status Badge */}
                       <div className="flex flex-col items-end">
                         <span
                           className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            hasIp && isHealthy
-                              ? 'bg-emerald-500/15 text-emerald-500'
-                              : 'bg-amber-500/15 text-amber-500'
+                            isLiveActive
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : isHealthy
+                                ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+                                : 'bg-muted text-muted-foreground border border-border'
                           }`}
                         >
-                          {hasIp && isHealthy ? (
+                          {isLiveActive ? (
                             <>
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              Active
+                            </>
+                          ) : isHealthy ? (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 mr-1 text-teal-400" />
                               Ready
                             </>
                           ) : (
@@ -411,9 +489,13 @@ export function BondingDashboardScreen(): React.JSX.Element {
                             </>
                           )}
                         </span>
-                        {metric && hasIp && (
-                          <span className="text-[10.5px] text-muted-foreground mt-1 font-mono">
-                            {metric.latencyMs < 999 ? `${metric.latencyMs}ms RTT` : 'Active'}
+                        {hasIp && (
+                          <span className="text-[10px] text-muted-foreground mt-1 font-mono">
+                            {metric && metric.latencyMs < 999
+                              ? `${metric.latencyMs}ms RTT`
+                              : isLiveActive
+                                ? 'Bonded Link'
+                                : 'Ready'}
                           </span>
                         )}
                       </div>
@@ -451,7 +533,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                             className={`h-full transition-all duration-500 rounded-full ${
                               isIphone ? 'bg-amber-500' : 'bg-teal-500'
                             }`}
-                            style={{ width: `${weight}%` }}
+                            style={{ width: `${Math.max(4, weight)}%` }}
                           />
                         </div>
                       </div>
@@ -469,37 +551,41 @@ export function BondingDashboardScreen(): React.JSX.Element {
           </div>
         </div>
 
-        {/* 3. INTEGRATED BONDED DOWNLOAD ACCELERATOR & TRANSFERS */}
-        <div className="space-y-3">
+        {/* 3. INTEGRATED BONDED DOWNLOAD ACCELERATOR & TRANSFERS QUEUE */}
+        <div className="space-y-3 pt-2 border-t border-border/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Bonded Download Accelerator & Transfers
+                Bonded Transfers & Download Accelerator
               </h3>
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                 Multi-Link Turbo
               </span>
             </div>
 
-            <button
-              onClick={() => openNewDownload()}
-              className="flex items-center space-x-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>New Download</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <ScheduleIndicator onClick={openSchedule} />
+              <NetworksMenu
+                onOpenLimits={(page) => {
+                  setShowSchedule(false)
+                  setLimitsPage(page)
+                  setLimitsOpen(true)
+                }}
+              />
+            </div>
           </div>
 
           {/* Quick Download Input Bar */}
-          <div className="flex items-center space-x-2 rounded-2xl border border-border/80 bg-card/60 p-2 shadow-sm">
+          <div className="flex items-center space-x-2 rounded-2xl border border-border/80 bg-card/60 p-2 shadow-sm focus-within:border-emerald-500/60 focus-within:ring-1 focus-within:ring-emerald-500/30 transition-all">
             <input
               type="text"
+              aria-label="Quick download URL"
               value={quickUrl}
               onChange={(e) => setQuickUrl(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleQuickDownload()
               }}
-              placeholder="Paste file URL, magnet link, or drop .torrent..."
+              placeholder="Paste URL, magnet, or drop file to accelerate..."
               className="flex-1 bg-transparent px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none font-mono"
             />
             <button
@@ -513,264 +599,326 @@ export function BondingDashboardScreen(): React.JSX.Element {
             <button
               onClick={handleQuickDownload}
               disabled={!quickUrl.trim()}
-              className="flex items-center space-x-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-all shrink-0"
+              className="flex items-center space-x-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-all shrink-0"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Zap className="h-3.5 w-3.5" />
               <span>Accelerate</span>
             </button>
           </div>
 
-          {/* Active Downloads List or High-Tech Drop Zone */}
-          {activeDownloads.length > 0 ? (
-            <div className="space-y-2.5">
-              {activeDownloads.map((dl) => {
-                const percent =
-                  dl.totalBytes > 0 ? Math.round((dl.bytesDownloaded / dl.totalBytes) * 100) : 0
-                const isPaused = dl.status === 'paused'
-
-                return (
-                  <div
-                    key={dl.id}
-                    className="rounded-2xl border border-border/80 bg-card/75 p-3.5 shadow-sm space-y-2.5 transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                            dl.status === 'downloading'
-                              ? 'bg-emerald-500/15 text-emerald-500'
-                              : 'bg-amber-500/15 text-amber-500'
-                          }`}
-                        >
-                          <Download
-                            className={`h-4.5 w-4.5 ${
-                              dl.status === 'downloading' ? 'animate-bounce' : ''
-                            }`}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-foreground truncate">
-                            {dl.fileName}
-                          </h4>
-                          <div className="flex items-center space-x-2 text-[11px] text-muted-foreground font-mono mt-0.5">
-                            <span>{formatBytes(dl.bytesDownloaded)}</span>
-                            {dl.totalBytes > 0 && <span>/ {formatBytes(dl.totalBytes)}</span>}
-                            <span>•</span>
-                            <span className="font-bold text-foreground">
-                              {formatSpeed(dl.speedBytesPerSec, speedUnit)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-1.5 shrink-0">
-                        <button
-                          onClick={() => void handlePauseResume(dl.id, isPaused)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/70 hover:bg-accent text-foreground"
-                          title={isPaused ? 'Resume download' : 'Pause download'}
-                        >
-                          {isPaused ? (
-                            <Play className="h-3.5 w-3.5" />
-                          ) : (
-                            <Pause className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => void handleReveal(dl.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/70 hover:bg-accent text-foreground"
-                          title="Show in Finder"
-                        >
-                          <FolderOpen className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => void handleCancel(dl.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/70 hover:bg-rose-500/10 hover:text-rose-500 text-muted-foreground"
-                          title="Cancel download"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar & Networks Attribution */}
-                    <div className="space-y-1.5">
-                      <div className="h-2 w-full bg-muted/60 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 rounded-full"
-                          style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[10.5px] text-muted-foreground font-mono">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-muted text-[10px]">
-                            {dl.networks.filter((n) => n.enabled).length} bonded links active
-                          </span>
-                        </div>
-                        <span className="font-bold text-foreground">{percent}%</span>
-                      </div>
-                    </div>
+          {/* Filter & Batch Actions Toolbar */}
+          <div className="rounded-xl border border-border/60 bg-card/40 p-1.5">
+            {chosen.length === 0 ? (
+              <div className="flex h-10 items-center gap-3 px-2">
+                <DownloadFilterMenu
+                  value={filter}
+                  counts={counts}
+                  onChange={(next) => {
+                    setFilter(next)
+                    setSelected(new Set())
+                  }}
+                />
+                {allGroups.length > 1 && (
+                  <div className="font-mono text-[11px] leading-none text-muted-foreground">
+                    {summaryOf(downloadsList)}
                   </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border/70 bg-card/30 p-5 text-center space-y-2">
-              <div className="flex justify-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
-                  <Download className="h-5 w-5" />
+                )}
+                <div className="flex-1" />
+                <Button type="button" size="sm" variant="ghost" onClick={() => openNewDownload()}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  New download
+                </Button>
+              </div>
+            ) : (
+              <div
+                role="toolbar"
+                aria-label="Selected downloads"
+                aria-busy={busy}
+                className="flex h-10 items-center gap-3 px-2"
+              >
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Deselect all"
+                        disabled={busy}
+                        onClick={() => setSelected(new Set())}
+                      >
+                        <X />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>Deselect all</TooltipContent>
+                </Tooltip>
+                <span className="shrink-0 whitespace-nowrap text-[13px] font-semibold">
+                  {chosen.length} selected
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy || chosen.length === items.length}
+                  onClick={() => setSelected(new Set(items.map((item) => item.id)))}
+                >
+                  Select all
+                </Button>
+                <div className="flex-1" />
+                <div className="flex min-w-0 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {toolbarButtons.map(({ id, targets }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      size="sm"
+                      variant={ACTION_META[id].destructive ? 'destructive' : 'secondary'}
+                      disabled={busy}
+                      onClick={() => void perform(id, targets)}
+                    >
+                      {toolbarLabel(id, targets.length)}
+                    </Button>
+                  ))}
+                  <MoreActionsMenu groups={moreActions} disabled={busy} />
                 </div>
               </div>
-              <p className="text-xs font-semibold text-foreground">No active downloads right now</p>
-              <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                Paste any download URL, magnet link, or drop a .torrent file to accelerate it
-                simultaneously across Wi-Fi and iPhone USB.
-              </p>
-              <div className="pt-1 flex items-center justify-center gap-2">
-                <button
-                  onClick={() => openNewDownload()}
-                  className="rounded-xl border border-border/80 bg-card hover:bg-accent px-3 py-1.5 text-xs font-medium text-foreground transition-all"
+            )}
+          </div>
+
+          {/* Downloads List or Empty State */}
+          <div className="space-y-4">
+            {groups.length === 0 &&
+              (filter === 'all' ? (
+                <EmptyState />
+              ) : (
+                <div
+                  role="status"
+                  className="flex flex-col items-center gap-2 px-5 py-12 text-center"
                 >
-                  Open Download Dialog
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Recently Completed Downloads Strip */}
-          {completedDownloads.length > 0 && (
-            <div className="rounded-xl border border-border/50 bg-card/40 p-3 space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Recent Completed Transfers
-              </div>
-              <div className="space-y-1">
-                {completedDownloads.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors"
+                  <p className="text-[15px] font-semibold">
+                    {filter === 'progress'
+                      ? 'No downloads in progress'
+                      : filter === 'finished'
+                        ? 'No finished downloads'
+                        : 'No downloads need attention'}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFilter('all')}
                   >
-                    <div className="flex items-center space-x-2 truncate max-w-[70%]">
-                      <FileText className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      <span className="truncate font-medium">{item.fileName}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="text-[11px] font-mono text-muted-foreground">
-                        {formatBytes(item.totalBytes)}
-                      </span>
-                      <button
-                        onClick={() => void handleReveal(item.id)}
-                        className="text-[11px] text-blue-500 hover:underline"
-                      >
-                        Show
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 4. BONDING & BALANCING STRATEGY */}
-        <div className="space-y-2.5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Bonding & Balancing Strategy
-          </h3>
-          <div className="grid grid-cols-2 gap-2.5">
-            {strategies.map((strat) => {
-              const selected = strategy === strat.id
-              const Icon = strat.icon
-
+                    Show all downloads
+                  </Button>
+                </div>
+              ))}
+            {groups.map((group) => {
+              const ids = group.items.map((item) => item.id)
+              const all = ids.every((id) => selected.has(id))
+              const some = !all && ids.some((id) => selected.has(id))
               return (
-                <button
-                  key={strat.id}
-                  onClick={() => void setBondingStrategy(strat.id)}
-                  className={`flex text-left p-3 rounded-2xl border transition-all ${
-                    selected
-                      ? 'border-emerald-500/60 bg-emerald-500/5 ring-1 ring-emerald-500/30'
-                      : 'border-border/70 bg-card/40 hover:bg-card/70'
-                  }`}
+                <section
+                  key={group.label}
+                  aria-label={group.label}
+                  className="rounded-2xl border border-border/70 bg-card/60 p-3 shadow-xs"
                 >
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl mr-2.5 ${
-                      selected ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
+                  <div className="flex items-center gap-3 border-b-[0.5px] border-border pb-2.5">
+                    <Checkbox
+                      aria-label={
+                        group.label === 'Needs attention'
+                          ? 'Select all downloads needing attention'
+                          : `Select all ${group.label.toLowerCase()} downloads`
+                      }
+                      checked={all}
+                      indeterminate={some}
+                      onCheckedChange={(on) => toggle(ids, on)}
+                    />
+                    <h2 className={groupLabelClass}>
+                      {group.label}
+                      <span className="ml-2.5 tracking-normal font-sans font-bold">
+                        {group.items.length}
+                      </span>
+                    </h2>
+                    <div className="flex-1" />
+                    {group.label === 'Finished' && history.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={askClearFinished}
+                      >
+                        Clear finished list
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <div className="font-semibold text-xs flex items-center space-x-1.5">
-                      <span>{strat.title}</span>
-                      {selected && (
-                        <span className="text-[9.5px] text-emerald-500 font-bold uppercase">
-                          (Active)
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">
-                      {strat.desc}
-                    </p>
+                  <div className="divide-y divide-border/30 pt-1">
+                    {group.items.map((item) => (
+                      <ListedDownload
+                        key={item.id}
+                        item={item}
+                        now={now}
+                        selected={selected.has(item.id)}
+                        chosen={selected.has(item.id) ? chosen : NOT_CHOSEN}
+                        networkVisual={
+                          isFinished(item) || item.status === 'completed'
+                            ? undefined
+                            : networkVisual
+                        }
+                        onSelect={selectRow}
+                        onOpen={openRow}
+                        onPerform={perform}
+                      />
+                    ))}
                   </div>
-                </button>
+                </section>
               )
             })}
           </div>
         </div>
 
-        {/* 5. ACTIVE MULTI-NETWORK FLOWS INSPECTOR */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Active Multi-Network Flows
-            </h3>
-            <span className="text-[11px] text-muted-foreground font-mono">
-              {recentFlows.filter((f) => f.active).length} concurrent streams
-            </span>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-sm">
-            {recentFlows.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                {active
-                  ? 'Connections idle. Click "Benchmark Speed" above, start a download, or browse the web to see real-time multi-network traffic.'
-                  : 'Activate bonding above to start combining network connections.'}
+        {/* 4. BONDING STRATEGY & FLOW TELEMETRY (Collapsible Accordion) */}
+        <div className="rounded-2xl border border-border/70 bg-card/50 overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/40 transition-colors text-left"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                <Layers className="h-4 w-4" />
               </div>
-            ) : (
-              <div className="max-h-44 overflow-y-auto divide-y divide-border/40 text-xs">
-                {recentFlows.slice(0, 15).map((flow) => (
-                  <div
-                    key={flow.id}
-                    className="flex items-center justify-between px-3.5 py-2 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-center space-x-2 truncate max-w-[65%]">
-                      <span
-                        className={`h-2 w-2 rounded-full shrink-0 ${
-                          flow.active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40'
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Bonding Engine Strategy & Live Socket Telemetry
+                </h4>
+                <span className="text-[11px] text-muted-foreground mt-0.5 block">
+                  Current:{' '}
+                  <strong className="text-foreground capitalize">
+                    {strategy.replace('_', ' ')}
+                  </strong>{' '}
+                  · {recentFlows.filter((f) => f.active).length} concurrent streams
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+              <span>{showAdvanced ? 'Hide Advanced' : 'Configure Strategy'}</span>
+              {showAdvanced ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </div>
+          </button>
+
+          {showAdvanced && (
+            <div className="p-4 pt-1 space-y-5 border-t border-border/40">
+              {/* Bonding Strategies Cards */}
+              <div className="space-y-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Multipath Routing Algorithm
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {strategies.map((strat) => {
+                    const isStratActive = strategy === strat.id
+                    const StratIcon = strat.icon
+
+                    return (
+                      <button
+                        key={strat.id}
+                        onClick={() => void setBondingStrategy(strat.id)}
+                        className={`flex text-left p-3 rounded-2xl border transition-all ${
+                          isStratActive
+                            ? 'border-emerald-500/60 bg-emerald-500/5 ring-1 ring-emerald-500/30'
+                            : 'border-border/70 bg-card/40 hover:bg-card/70'
                         }`}
-                      />
-                      <span className="font-mono truncate font-medium text-foreground text-[11.5px]">
-                        {flow.host}:{flow.port}
-                      </span>
-                      <span className="text-[9.5px] uppercase font-bold text-muted-foreground bg-muted px-1.5 py-0.2 rounded">
-                        {flow.protocol}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-2.5 shrink-0">
-                      <span className="text-[11px] font-mono text-muted-foreground">
-                        {formatBytes(flow.bytesTransferred)}
-                      </span>
-                      <span className="inline-flex items-center text-[10px] font-medium bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full font-mono">
-                        {flow.interfaceName}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                      >
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl mr-2.5 ${
+                            isStratActive
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          <StratIcon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-xs flex items-center space-x-1.5">
+                            <span>{strat.title}</span>
+                            {isStratActive && (
+                              <span className="text-[9.5px] text-emerald-500 font-bold uppercase">
+                                (Active)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">
+                            {strat.desc}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Active Multi-Network Flows Inspector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Active Multi-Network Flows
+                  </div>
+                  <span className="text-[10.5px] text-muted-foreground font-mono">
+                    {recentFlows.filter((f) => f.active).length} concurrent streams
+                  </span>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40 shadow-xs">
+                  {recentFlows.length === 0 ? (
+                    <div className="py-5 text-center text-xs text-muted-foreground">
+                      {active
+                        ? 'Connections idle. Benchmark speed, start a transfer, or browse the web to see real-time multiplexed traffic.'
+                        : 'Activate bonding above to start combining network connections.'}
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto divide-y divide-border/40 text-xs">
+                      {recentFlows.slice(0, 15).map((flow) => (
+                        <div
+                          key={flow.id}
+                          className="flex items-center justify-between px-3.5 py-1.5 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex items-center space-x-2 truncate max-w-[65%]">
+                            <span
+                              className={`h-2 w-2 rounded-full shrink-0 ${
+                                flow.active
+                                  ? 'bg-emerald-500 animate-pulse'
+                                  : 'bg-muted-foreground/40'
+                              }`}
+                            />
+                            <span className="font-mono truncate font-medium text-foreground text-[11px]">
+                              {flow.host}:{flow.port}
+                            </span>
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground bg-muted px-1.5 py-0.2 rounded">
+                              {flow.protocol}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-2.5 shrink-0">
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {formatBytes(flow.bytesTransferred)}
+                            </span>
+                            <span className="inline-flex items-center text-[10px] font-medium bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full font-mono">
+                              {flow.interfaceName}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 6. SYSTEM SETTINGS FOOTER */}
+        {/* 5. SYSTEM SETTINGS FOOTER */}
         <div className="rounded-xl border border-border/40 bg-muted/20 p-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>Need to tweak adapter priority or tethering settings?</span>
           <button
@@ -782,6 +930,14 @@ export function BondingDashboardScreen(): React.JSX.Element {
           </button>
         </div>
       </div>
+
+      <LimitsDialog
+        open={limitsOpen}
+        showSchedule={showSchedule}
+        onOpenChange={setLimitsOpen}
+        page={limitsPage}
+        onPageChange={setLimitsPage}
+      />
     </div>
   )
 }

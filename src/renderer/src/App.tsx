@@ -10,7 +10,6 @@ import { useNetworkEvents } from './hooks/useNetworks'
 import { useNewDownloadShortcuts, useOpenedLinks } from './hooks/useOpenedLinks'
 import { CompleteScreen } from './screens/CompleteScreen'
 import { DownloadingScreen } from './screens/DownloadingScreen'
-import { DownloadsScreen } from './screens/DownloadsScreen'
 import { ErrorScreen } from './screens/ErrorScreen'
 import { BondingDashboardScreen } from './screens/BondingDashboardScreen'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -41,7 +40,7 @@ function renderDownload(download: DownloadState | FinishedDownload): React.JSX.E
   }
 }
 
-/** The screen shown: bonding dashboard, download detail, or download list. */
+/** The screen shown: unified bonding & downloads dashboard or download detail. */
 function CurrentScreen(): React.JSX.Element {
   const view = useAppStore((store) => store.view)
   const shown = useAppStore((store) => {
@@ -49,12 +48,8 @@ function CurrentScreen(): React.JSX.Element {
     return store.downloads[view.id] ?? store.history.find((entry) => entry.id === view.id) ?? null
   })
 
-  if (view.name === 'bonding') {
-    return <BondingDashboardScreen />
-  }
-
   const cancelled = shown && !('unitsWritten' in shown) && shown.status === 'cancelled'
-  return shown && !cancelled ? renderDownload(shown) : <DownloadsScreen />
+  return shown && !cancelled ? renderDownload(shown) : <BondingDashboardScreen />
 }
 
 function App(): React.JSX.Element {

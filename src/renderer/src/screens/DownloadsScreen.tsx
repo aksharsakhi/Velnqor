@@ -1,4 +1,3 @@
-import type { DownloadState, FinishedDownload } from '@shared/types'
 import { ChevronRight, Plus, X } from 'lucide-react'
 import { cn } from 'cn'
 import { Fragment, memo, useCallback, useEffect, useState } from 'react'
@@ -39,51 +38,14 @@ import {
   type ActionId
 } from '../utils/downloadActions'
 
-type Item = DownloadState | FinishedDownload
-
-interface Group {
-  label: string
-  items: Item[]
-}
-
-function filterOf(item: Item): Exclude<DownloadFilter, 'all'> {
-  if ('unitsWritten' in item || item.status === 'completed') return 'finished'
-  return item.status === 'error' ? 'failed' : 'progress'
-}
-
-function groupsOf(downloads: DownloadState[], history: FinishedDownload[]): Group[] {
-  const byStatus = (status: DownloadState['status']): DownloadState[] =>
-    downloads.filter((download) => download.status === status)
-  return [
-    { label: 'Downloading', items: byStatus('downloading') },
-    {
-      label: 'Queued',
-      items: byStatus('queued').sort((a, b) => (a.queuedAt ?? 0) - (b.queuedAt ?? 0))
-    },
-    { label: 'Paused', items: byStatus('paused') },
-    { label: 'Needs attention', items: byStatus('error') },
-    // Completed but not in history yet: on its way there, so listed with it.
-    { label: 'Finished', items: [...byStatus('completed'), ...history] }
-  ].filter((group) => group.items.length > 0)
-}
-
-/** "2 downloading · 1 queued", or "all done". */
-function summaryOf(downloads: DownloadState[]): string {
-  const count = (status: DownloadState['status']): number =>
-    downloads.filter((download) => download.status === status).length
-  const parts = [
-    [count('downloading'), 'downloading'],
-    [count('queued'), 'queued'],
-    [count('paused'), 'paused'],
-    [count('error'), 'need attention']
-  ]
-    .filter(([n]) => (n as number) > 0)
-    .map(([n, label]) => `${n} ${label}`)
-  return parts.length > 0 ? parts.join(' · ') : 'all done'
-}
-
-const groupLabelClass =
-  'font-mono text-[10.5px] leading-none font-medium tracking-[0.18em] text-muted-foreground uppercase'
+import {
+  type Item,
+  filterOf,
+  groupsOf,
+  summaryOf,
+  groupLabelClass,
+  NOT_CHOSEN
+} from '../utils/downloadGroups'
 
 export function DownloadsScreen(): React.JSX.Element {
   const downloadsById = useAppStore((store) => store.downloads)
@@ -362,7 +324,7 @@ const PASTE_SHORTCUT = window.plexo.platform === 'darwin' ? '⌘V' : 'Ctrl+V'
 const NEW_SHORTCUT = window.plexo.platform === 'darwin' ? '⌘N' : 'Ctrl+N'
 
 /** Nothing listed yet: how to start one — or, with no network connected, how to get one. */
-function EmptyState(): React.JSX.Element {
+export function EmptyState(): React.JSX.Element {
   const noNetworks = useAppStore(
     (store) => store.interfacesStatus === 'ready' && store.interfaces.length === 0
   )
@@ -409,11 +371,9 @@ function EmptyState(): React.JSX.Element {
   )
 }
 
-const NOT_CHOSEN: Item[] = []
-
 /** A row with its right-click menu, memoized as one: a progress update to one download leaves
  * every other row, menu included, as it was. */
-const ListedDownload = memo(function ListedDownload({
+export const ListedDownload = memo(function ListedDownload({
   chosen,
   ...row
 }: React.ComponentProps<typeof DownloadRow> & { chosen: Item[] }): React.JSX.Element {
