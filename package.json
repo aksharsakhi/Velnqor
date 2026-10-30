@@ -80,5 +80,8 @@
     "fsevents@2.3.3": true,
     "koffi@2.16.3": true,
     "node-datachannel@0.32.3": true
+  },
+  "overrides": {
+    "ip": "^2.0.1"
   }
 }
