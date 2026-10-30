@@ -2,11 +2,11 @@ import React from 'react'
 import { TITLE_BAR_HEIGHT } from '../theme'
 import { useAppStore } from '../store/useAppStore'
 import { Zap, DownloadCloud } from 'lucide-react'
-import logoImg from '../assets/velnqor-logo.png'
+import { VelnqorLogo } from './VelnqorLogo'
 
 const isMac = (window.velnqor || window.plexo).platform === 'darwin'
 
-/** The window's title bar: brand name with new Velnqor logo, centered tabs between System Bonding and Downloads. */
+/** The window's title bar: brand name with clean SVG Velnqor logo, centered tabs between System Bonding and Downloads. */
 export function TitleBar(): React.JSX.Element {
   const activeTab = useAppStore((state) => state.activeTab)
   const setActiveTab = useAppStore((state) => state.setActiveTab)
@@ -19,13 +19,9 @@ export function TitleBar(): React.JSX.Element {
         isMac ? 'pl-[86px] pr-4' : 'px-4'
       }`}
     >
-      {/* Brand title with New Logo */}
+      {/* Brand title with Clean SVG Logo */}
       <div className="flex items-center space-x-2.5">
-        <img
-          src={logoImg}
-          alt="Velnqor"
-          className="h-5.5 w-5.5 rounded-lg shadow-sm object-cover ring-1 ring-emerald-500/25"
-        />
+        <VelnqorLogo className="h-5.5 w-5.5 rounded-lg shadow-xs ring-1 ring-emerald-500/25" />
         <div className="flex items-center space-x-1.5">
           <span className="font-sans text-[13.5px] font-bold tracking-tight text-foreground">
             Velnqor
