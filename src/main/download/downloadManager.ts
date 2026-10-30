@@ -3,8 +3,7 @@ import { describeError } from '../../shared/errors'
 import { randomUUID } from 'node:crypto'
 import { lstat, readFile, readdir, rename, rm, stat, statfs, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, sep } from 'node:path'
-import type { BrowserWindow } from 'electron'
-import { app, Notification, powerSaveBlocker, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, Notification, powerSaveBlocker, safeStorage, shell } from 'electron'
 import { scheduleWindow } from '../../shared/downloadSchedule'
 import { IpcChannels } from '../../shared/ipc-channels'
 import {
@@ -748,8 +747,9 @@ export class DownloadManager {
   }
 
   private historyChanged(): void {
-    const window = this.getWindow()
-    if (window && !window.isDestroyed()) window.webContents.send(IpcChannels.historyChanged)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send(IpcChannels.historyChanged)
+    }
   }
 
   /** Forgets every finished download. Their files are the user's: they stay. */
@@ -1930,12 +1930,15 @@ export class DownloadManager {
     // would put it back on screen after the renderer has already moved on.
     if (this.runtimes.get(runtime.state.id) !== runtime) return
     if (persist) this.schedulePersistence(runtime)
-    const window = this.getWindow()
-    if (!window || window.isDestroyed()) return
     if (runtime.state.status === 'paused' || runtime.state.status === 'cancelled') {
       clearSpeeds(runtime.state)
     }
-    window.webContents.send(IpcChannels.downloadUpdated, this.takeUpdate(runtime))
+    const update = this.takeUpdate(runtime)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IpcChannels.downloadUpdated, update)
+      }
+    }
   }
 
   /** What the window hasn't been sent yet: the download's state, and the work units that moved. */

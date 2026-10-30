@@ -204,7 +204,10 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  downloadManager = registerIpcHandlers(() => mainWindow)
+  downloadManager = registerIpcHandlers(() => mainWindow, {
+    ensureWindow,
+    getMenuBarManager: () => menuBarManager
+  })
 
   // Sanitize any orphaned proxies from unexpected prior system crashes or power losses
   await bondingManagerInstance

@@ -1,12 +1,13 @@
 import { stat, statfs } from 'node:fs/promises'
 import {
+  app,
   clipboard,
   dialog,
   ipcMain,
   nativeTheme,
   powerMonitor,
   shell,
-  type BrowserWindow,
+  BrowserWindow,
   type IpcMainInvokeEvent
 } from 'electron'
 import { IpcChannels } from '../../shared/ipc-channels'
@@ -72,12 +73,19 @@ async function freeSpace(dir: string): Promise<number | null> {
   }
 }
 
-export function registerIpcHandlers(getWindow: () => BrowserWindow | null): DownloadManager {
+export function registerIpcHandlers(
+  getWindow: () => BrowserWindow | null,
+  options?: {
+    ensureWindow?: () => BrowserWindow
+    getMenuBarManager?: () => { hideTrayWindow: () => void } | null
+  }
+): DownloadManager {
   // The main process keeps the network list, for downloads and the window alike.
   const networks = new NetworkMonitor((list) => {
     manager.networksChanged()
-    const window = getWindow()
-    if (window && !window.isDestroyed()) window.webContents.send(IpcChannels.networksChanged, list)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send(IpcChannels.networksChanged, list)
+    }
   })
   const manager = new DownloadManager(getWindow, networks)
   // Waking from sleep, the networks may have changed without a poll in between to see it.
@@ -276,6 +284,22 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): Down
   })
   handle('toggleSystemProxy', async (_event, enable) => bondingManager.toggleSystemProxy(enable))
   handle('runSpeedTest', async () => bondingManager.runSpeedTest())
+
+  handle('openMainWindow', () => {
+    const win = options?.ensureWindow ? options.ensureWindow() : getWindow()
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+    options?.getMenuBarManager?.()?.hideTrayWindow()
+  })
+  handle('hideTrayWindow', () => {
+    options?.getMenuBarManager?.()?.hideTrayWindow()
+  })
+  handle('quitApp', () => {
+    app.quit()
+  })
 
   return manager
 }

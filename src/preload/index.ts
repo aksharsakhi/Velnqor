@@ -109,6 +109,9 @@ const plexoApi = {
   setBondingStrategy: (strategy: BondingStrategy) => invoke('setBondingStrategy', strategy),
   toggleSystemProxy: (enable?: boolean) => invoke('toggleSystemProxy', enable),
   runSpeedTest: () => invoke('runSpeedTest'),
+  openMainWindow: () => invoke('openMainWindow'),
+  hideTrayWindow: () => invoke('hideTrayWindow'),
+  quitApp: () => invoke('quitApp'),
 
   onBondingStateChanged: (callback: (state: BondingState) => void): (() => void) => {
     const listener = (_event: IpcRendererEvent, state: BondingState): void => callback(state)

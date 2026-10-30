@@ -1,7 +1,7 @@
 import { Socket } from 'node:net'
 import https from 'node:https'
 import { execFile } from 'node:child_process'
-import type { BrowserWindow } from 'electron'
+import { BrowserWindow } from 'electron'
 import type {
   BondingState,
   BondingStrategy,
@@ -307,9 +307,11 @@ export class BondingManager {
   }
 
   private broadcastState(): void {
-    const window = this.getWindow()
-    if (window && !window.isDestroyed()) {
-      window.webContents.send(IpcChannels.bondingStateChanged, this.getState())
+    const state = this.getState()
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IpcChannels.bondingStateChanged, state)
+      }
     }
   }
 

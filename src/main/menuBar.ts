@@ -1,4 +1,6 @@
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, screen, shell, Tray } from 'electron'
+import { is } from '@electron-toolkit/utils'
+import { join } from 'path'
 import trayTemplateIcon from '../../resources/trayTemplate.png?asset'
 import type { BondingManager } from './bonding/bondingManager'
 import type { DownloadManager } from './download/downloadManager'
@@ -12,6 +14,7 @@ import { bringForward } from './openLinks'
  */
 export class MenuBarManager {
   private tray: Tray | null = null
+  private trayWindow: BrowserWindow | null = null
   private backgroundActivityEnabled = true
   private getWindow: () => BrowserWindow | null
   private ensureWindow: () => BrowserWindow
@@ -47,6 +50,107 @@ export class MenuBarManager {
     return this.backgroundActivityEnabled
   }
 
+  createTrayWindow(): BrowserWindow {
+    if (this.trayWindow && !this.trayWindow.isDestroyed()) {
+      return this.trayWindow
+    }
+
+    const isDev = is.dev && process.env['ELECTRON_RENDERER_URL']
+
+    const win = new BrowserWindow({
+      width: 360,
+      height: 500,
+      show: false,
+      frame: false,
+      resizable: false,
+      movable: false,
+      fullscreenable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      hasShadow: true,
+      backgroundColor: '#16171a',
+      ...(process.platform === 'darwin'
+        ? {
+            vibrancy: 'popover',
+            visualEffectState: 'active'
+          }
+        : {}),
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        webviewTag: false,
+        backgroundThrottling: false
+      }
+    })
+
+    win.on('blur', () => {
+      if (!win.isDestroyed() && win.isVisible()) {
+        win.hide()
+      }
+    })
+
+    win.webContents.setWindowOpenHandler((details) => {
+      if (/^https?:/i.test(details.url)) void shell.openExternal(details.url)
+      return { action: 'deny' }
+    })
+
+    if (isDev) {
+      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?mode=tray`)
+    } else {
+      win.loadFile(join(__dirname, '../renderer/index.html'), {
+        query: { mode: 'tray' },
+        hash: 'tray'
+      })
+    }
+
+    this.trayWindow = win
+    return win
+  }
+
+  showTrayWindow(): void {
+    if (!this.tray) return
+    const win = this.createTrayWindow()
+    const trayBounds = this.tray.getBounds()
+    const primaryDisplay = screen.getDisplayMatching(trayBounds) || screen.getPrimaryDisplay()
+    const { workArea } = primaryDisplay
+
+    const [winWidth, winHeight] = win.getSize()
+    const x = Math.round(
+      Math.max(
+        workArea.x + 8,
+        Math.min(
+          trayBounds.x + trayBounds.width / 2 - winWidth / 2,
+          workArea.x + workArea.width - winWidth - 8
+        )
+      )
+    )
+
+    let y = Math.round(trayBounds.y + trayBounds.height + 4)
+    if (y + winHeight > workArea.y + workArea.height) {
+      y = Math.round(trayBounds.y - winHeight - 4)
+    }
+
+    win.setPosition(x, y, false)
+    win.show()
+    win.focus()
+  }
+
+  hideTrayWindow(): void {
+    if (this.trayWindow && !this.trayWindow.isDestroyed() && this.trayWindow.isVisible()) {
+      this.trayWindow.hide()
+    }
+  }
+
+  toggleTrayWindow(): void {
+    if (this.trayWindow && !this.trayWindow.isDestroyed() && this.trayWindow.isVisible()) {
+      this.trayWindow.hide()
+    } else {
+      this.showTrayWindow()
+    }
+  }
+
   private createTray(): void {
     if (this.tray) return
 
@@ -60,13 +164,11 @@ export class MenuBarManager {
     this.tray.setIgnoreDoubleClickEvents(true)
 
     this.tray.on('click', () => {
-      const win = this.getWindow()
-      if (win && win.isVisible() && !win.isMinimized()) {
-        this.tray?.popUpContextMenu()
-      } else {
-        const target = this.ensureWindow()
-        bringForward(target)
-      }
+      this.toggleTrayWindow()
+    })
+
+    this.tray.on('right-click', () => {
+      this.tray?.popUpContextMenu()
     })
 
     this.updateMenu()
@@ -178,6 +280,10 @@ export class MenuBarManager {
     if (this.pollTimer) {
       clearInterval(this.pollTimer)
       this.pollTimer = null
+    }
+    if (this.trayWindow && !this.trayWindow.isDestroyed()) {
+      this.trayWindow.destroy()
+      this.trayWindow = null
     }
     if (this.tray && !this.tray.isDestroyed()) {
       this.tray.destroy()

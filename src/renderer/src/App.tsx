@@ -15,6 +15,7 @@ import { BondingDashboardScreen } from './screens/BondingDashboardScreen'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useBondingEvents } from './hooks/useBondingEvents'
 import { useAppStore } from './store/useAppStore'
+import { MiniTrayScreen } from './screens/MiniTrayScreen'
 
 function assertNever(status: never): never {
   throw new Error(`Unhandled download status: ${String(status)}`)
@@ -58,6 +59,22 @@ function App(): React.JSX.Element {
   useNewDownloadShortcuts()
   useNetworkEvents()
   useBondingEvents()
+
+  const isTrayMode =
+    typeof window !== 'undefined' &&
+    (window.location.search.includes('mode=tray') || window.location.hash.includes('tray'))
+
+  if (isTrayMode) {
+    return (
+      <TooltipProvider>
+        <DownloadActionsProvider>
+          <ErrorBoundary>
+            <MiniTrayScreen />
+          </ErrorBoundary>
+        </DownloadActionsProvider>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

@@ -42,5 +42,8 @@ export const IpcChannels = {
   setBondingStrategy: 'bonding:set-strategy',
   toggleSystemProxy: 'bonding:toggle-system-proxy',
   runSpeedTest: 'bonding:run-speed-test',
-  bondingStateChanged: 'bonding:state-changed'
+  bondingStateChanged: 'bonding:state-changed',
+  openMainWindow: 'app:open-main-window',
+  hideTrayWindow: 'app:hide-tray-window',
+  quitApp: 'app:quit'
 } as const

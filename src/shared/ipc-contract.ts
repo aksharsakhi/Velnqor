@@ -73,4 +73,7 @@ export interface IpcContract {
   setBondingStrategy: { args: [strategy: BondingStrategy]; result: void }
   toggleSystemProxy: { args: [enable?: boolean]; result: boolean }
   runSpeedTest: { args: []; result: void }
+  openMainWindow: { args: []; result: void }
+  hideTrayWindow: { args: []; result: void }
+  quitApp: { args: []; result: void }
 }
