@@ -40,7 +40,9 @@ test.describe('Menu Bar Companion Window (Tray Popover) @smoke', () => {
     // 7. Test Basic Operation: Stop Bonding
     const stopBtn = plexo.page.getByRole('button', { name: /Stop/i })
     await stopBtn.click()
-    await expect(plexo.page.getByRole('button', { name: /Activate/i })).toBeVisible({ timeout: 10000 })
+    await expect(plexo.page.getByRole('button', { name: /Activate/i })).toBeVisible({
+      timeout: 10000
+    })
 
     // 8. Verify Navigation & Quit Buttons
     await expect(plexo.page.locator('text=Open Full Dashboard')).toBeVisible()
