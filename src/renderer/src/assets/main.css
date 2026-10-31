@@ -247,6 +247,34 @@
     cursor: default;
   }
 
+  /* Emil Kowalski tactility: buttons feel responsive to press with custom ease */
+  button,
+  [role='button'],
+  input[type='submit'],
+  input[type='button'] {
+    transition:
+      transform 140ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
+      border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
+      color 140ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  button:active,
+  [role='button']:active {
+    transform: scale(0.975);
+  }
+
+  button:disabled:active,
+  [role='button'][aria-disabled='true']:active {
+    transform: none;
+  }
+
+  /* Tabular numbers to eliminate numeric jitter */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* No core Tailwind utility for scrollbar pseudo-elements. */
   ::-webkit-scrollbar {
     width: 10px;
@@ -260,6 +288,17 @@
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
   }
+}
+
+/* Liquid Glass functional layer utility classes */
+.liquid-glass {
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+}
+
+.liquid-glass-bar {
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
 }
 
 @keyframes plexo-dash {

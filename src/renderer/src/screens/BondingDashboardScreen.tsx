@@ -12,7 +12,6 @@ import {
   Gauge,
   Globe,
   Layers,
-  Play,
   Plus,
   Radio,
   RefreshCw,
@@ -229,18 +228,18 @@ export function BondingDashboardScreen(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col text-foreground select-none overflow-hidden bg-background">
-      {/* 1. UNIFIED COMMAND BAR (Non-scrolling, Integrated Controls) */}
-      <div className="shrink-0 border-b border-border/80 bg-card/90 px-6 py-3.5 backdrop-blur-md shadow-sm">
+      {/* 1. LIQUID GLASS COMMAND BAR (Functional Floating Layer) */}
+      <div className="shrink-0 border-b border-border/70 bg-card/75 px-6 py-3.5 backdrop-blur-xl shadow-xs">
         <div className="flex flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5 min-w-0">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-inner transition-all ${
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-inner transition-transform duration-160 ease-out ${
                 active
-                  ? 'bg-emerald-500/15 text-emerald-500 ring-2 ring-emerald-500/30'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/40 shadow-emerald-500/10'
+                  : 'bg-muted/70 text-muted-foreground'
               }`}
             >
-              <Zap className={`h-5 w-5 ${active ? 'animate-pulse' : ''}`} />
+              <Zap className={`h-5 w-5 ${active ? 'fill-emerald-400/20' : ''}`} />
             </div>
             <div className="truncate">
               <div className="flex items-center space-x-2">
@@ -248,15 +247,15 @@ export function BondingDashboardScreen(): React.JSX.Element {
                   System-Wide Multi-WAN Bonding
                 </h2>
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${
                     active
-                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                      : 'bg-muted text-muted-foreground border border-border'
+                      ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/40'
+                      : 'bg-muted text-muted-foreground ring-1 ring-border'
                   }`}
                 >
                   <span
                     className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                      active ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'
+                      active ? 'bg-emerald-400 animate-pulse' : 'bg-muted-foreground'
                     }`}
                   />
                   {active ? 'Engine Active' : 'Standby'}
@@ -264,25 +263,25 @@ export function BondingDashboardScreen(): React.JSX.Element {
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
                 Bonding {activeInterfaces.length} active connection
-                {activeInterfaces.length === 1 ? '' : 's'} (Wi-Fi + iPhone USB) into unified
-                high-speed bandwidth.
+                {activeInterfaces.length === 1 ? '' : 's'} (Wi-Fi + iPhone USB + Ethernet) into
+                unified high-speed bandwidth.
               </p>
             </div>
           </div>
 
-          {/* Header Action Controls: Proxy Mode + Benchmark + Bonding Toggle */}
-          <div className="flex items-center space-x-2 shrink-0">
+          {/* Header Action Controls: Proxy Switch + Benchmark + Primary Bonding Button */}
+          <div className="flex items-center space-x-2.5 shrink-0">
             <button
               onClick={() => void toggleSystemProxy()}
-              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95 ${
+              className={`flex items-center space-x-2 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all active:scale-97 ${
                 systemProxyActive
-                  ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400'
-                  : 'border-border/80 bg-card hover:bg-accent text-muted-foreground hover:text-foreground'
+                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400'
+                  : 'border-border/80 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground'
               }`}
               title="Route all Mac browser & app traffic through bonded tunnel"
             >
               <Globe
-                className={`h-3.5 w-3.5 ${systemProxyActive ? 'text-emerald-400' : 'text-blue-500'}`}
+                className={`h-3.5 w-3.5 ${systemProxyActive ? 'text-emerald-400' : 'text-muted-foreground'}`}
               />
               <span>{systemProxyActive ? '✓ Mac Proxy On' : 'Route Mac Traffic'}</span>
             </button>
@@ -290,26 +289,24 @@ export function BondingDashboardScreen(): React.JSX.Element {
             <button
               onClick={() => void handleTestSpeed()}
               disabled={isSpeedTesting}
-              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95 ${
+              className={`flex items-center space-x-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all active:scale-97 disabled:opacity-50 ${
                 isSpeedTesting
-                  ? 'border-blue-500/40 bg-blue-500/10 text-blue-500'
-                  : 'border-border/80 bg-card hover:bg-accent text-foreground'
+                  ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
+                  : 'border-border/80 bg-card/60 hover:bg-card text-foreground'
               }`}
             >
-              {isSpeedTesting ? (
-                <Gauge className="h-3.5 w-3.5 animate-spin text-blue-500" />
-              ) : (
-                <Play className="h-3.5 w-3.5 text-blue-500 fill-blue-500/20" />
-              )}
+              <Gauge
+                className={`h-3.5 w-3.5 text-cyan-400 ${isSpeedTesting ? 'animate-spin' : ''}`}
+              />
               <span>{isSpeedTesting ? 'Benchmarking...' : 'Benchmark Speed'}</span>
             </button>
 
             <button
               onClick={() => void toggleBonding()}
-              className={`flex items-center justify-center rounded-xl px-4 py-1.5 text-xs font-bold shadow-md transition-all active:scale-95 ${
+              className={`flex items-center justify-center rounded-xl px-4 py-1.5 text-xs font-bold shadow-xs transition-all active:scale-97 ${
                 active
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                  ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40 hover:bg-rose-500/30'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold shadow-emerald-500/20'
               }`}
             >
               {active ? 'Stop Bonding' : 'Activate Bonding'}
@@ -318,7 +315,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
         </div>
 
         {error && (
-          <div className="mt-2.5 flex items-center space-x-2 text-xs text-rose-500 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
+          <div className="mt-2.5 flex items-center space-x-2 text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/30">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -327,55 +324,57 @@ export function BondingDashboardScreen(): React.JSX.Element {
 
       {/* 2. SCROLLABLE UNIFIED BODY */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-14 space-y-6 text-foreground">
-        {/* Real-Time Aggregate Speedometer Cards */}
+        {/* Real-Time Aggregate Speedometer Cards with Tabular Numbers */}
         <div className="grid grid-cols-2 gap-4">
           {/* Download Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm flex flex-col justify-between">
+          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-card/80 to-card/40 p-4.5 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <ArrowDown className="h-4 w-4 text-emerald-500" />
+              <div className="flex items-center space-x-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <ArrowDown className="h-4 w-4 text-emerald-400" />
                 <span>Aggregate Download</span>
               </div>
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                <Activity className={`h-4 w-4 ${totalDownloadSpeed > 0 ? 'animate-pulse' : ''}`} />
+              <div className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <Activity
+                  className={`h-3.5 w-3.5 ${totalDownloadSpeed > 0 ? 'animate-pulse' : ''}`}
+                />
               </div>
             </div>
 
-            <div className="my-2">
-              <div className="text-3xl font-black tracking-tight text-foreground font-mono">
+            <div className="my-2.5">
+              <div className="text-3xl font-black tracking-tight text-foreground font-mono tabular-nums">
                 {formatSpeed(totalDownloadSpeed, speedUnit)}
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
               <span>Aggregated across {activeInterfaces.length} active links</span>
-              <span className="font-mono text-foreground font-medium">
+              <span className="font-mono text-foreground font-medium tabular-nums">
                 Session: {formatBytes(sessionTotalBytesDown)}
               </span>
             </div>
           </div>
 
           {/* Upload Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm flex flex-col justify-between">
+          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-card/80 to-card/40 p-4.5 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <ArrowUp className="h-4 w-4 text-blue-500" />
+              <div className="flex items-center space-x-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <ArrowUp className="h-4 w-4 text-cyan-400" />
                 <span>Aggregate Upload</span>
               </div>
-              <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
-                <Radio className={`h-4 w-4 ${totalUploadSpeed > 0 ? 'animate-pulse' : ''}`} />
+              <div className="h-7 w-7 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                <Radio className={`h-3.5 w-3.5 ${totalUploadSpeed > 0 ? 'animate-pulse' : ''}`} />
               </div>
             </div>
 
-            <div className="my-2">
-              <div className="text-3xl font-black tracking-tight text-foreground font-mono">
+            <div className="my-2.5">
+              <div className="text-3xl font-black tracking-tight text-foreground font-mono tabular-nums">
                 {formatSpeed(totalUploadSpeed, speedUnit)}
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
               <span>Multi-WAN Outbound Multiplexing</span>
-              <span className="font-mono text-foreground font-medium">
+              <span className="font-mono text-foreground font-medium tabular-nums">
                 Session: {formatBytes(sessionTotalBytesUp)}
               </span>
             </div>
@@ -426,36 +425,36 @@ export function BondingDashboardScreen(): React.JSX.Element {
               return (
                 <div
                   key={iface.id}
-                  className={`rounded-2xl border p-3.5 transition-all flex flex-col justify-between ${
+                  className={`rounded-2xl border p-4 transition-all flex flex-col justify-between ${
                     hasIp
-                      ? 'border-border/80 bg-card/75 shadow-sm'
+                      ? 'border-border/70 bg-card/70 hover:border-border shadow-2xs'
                       : 'border-dashed border-border/50 bg-card/30 opacity-70'
                   }`}
                 >
                   <div>
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2.5">
+                      <div className="flex items-center space-x-3">
                         <div
-                          className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                          className={`flex h-9.5 w-9.5 items-center justify-center rounded-xl shadow-xs ${
                             isIphone
-                              ? 'bg-amber-500/15 text-amber-500'
+                              ? 'bg-amber-500/15 text-amber-400'
                               : isWifi
-                                ? 'bg-teal-500/15 text-teal-500'
-                                : 'bg-emerald-500/15 text-emerald-500'
+                                ? 'bg-emerald-500/15 text-emerald-400'
+                                : 'bg-cyan-500/15 text-cyan-400'
                           }`}
                         >
-                          <Icon className="h-4.5 w-4.5" />
+                          <Icon className="h-5 w-5" />
                         </div>
                         <div>
                           <div className="flex items-center space-x-1.5">
-                            <span className="font-bold text-xs">
+                            <span className="font-bold text-xs tracking-tight">
                               {iface.displayName || iface.device}
                             </span>
-                            <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.2 rounded">
+                            <span className="text-[10px] font-mono text-muted-foreground bg-muted/80 px-1.5 py-0.2 rounded-md">
                               {iface.device}
                             </span>
                           </div>
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          <div className="text-[11px] text-muted-foreground font-mono tabular-nums mt-0.5">
                             {ip}
                           </div>
                         </div>
@@ -464,7 +463,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                       {/* Health & Status Badge */}
                       <div className="flex flex-col items-end">
                         <span
-                          className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             isLiveActive
                               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                               : isHealthy
@@ -474,7 +473,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                         >
                           {isLiveActive ? (
                             <>
-                              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                               Active
                             </>
                           ) : isHealthy ? (
@@ -490,7 +489,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                           )}
                         </span>
                         {hasIp && (
-                          <span className="text-[10px] text-muted-foreground mt-1 font-mono">
+                          <span className="text-[10px] text-muted-foreground mt-1 font-mono tabular-nums">
                             {metric && metric.latencyMs < 999
                               ? `${metric.latencyMs}ms RTT`
                               : isLiveActive
@@ -508,11 +507,11 @@ export function BondingDashboardScreen(): React.JSX.Element {
                             <span className="text-muted-foreground text-[10px] block">
                               Live Speed
                             </span>
-                            <span className="font-semibold font-mono text-foreground">
+                            <span className="font-semibold font-mono tabular-nums text-foreground">
                               {formatSpeed(liveDownSpeed, speedUnit)}
                             </span>
                             {liveUpSpeed > 0 && (
-                              <span className="text-[10px] text-muted-foreground block font-mono">
+                              <span className="text-[10px] text-muted-foreground block font-mono tabular-nums">
                                 ↑ {formatSpeed(liveUpSpeed, speedUnit)}
                               </span>
                             )}
@@ -521,7 +520,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                             <span className="text-muted-foreground text-[10px] block">
                               Traffic Share
                             </span>
-                            <span className="font-semibold font-mono text-foreground">
+                            <span className="font-semibold font-mono tabular-nums text-foreground">
                               {weight}%
                             </span>
                           </div>
@@ -530,8 +529,8 @@ export function BondingDashboardScreen(): React.JSX.Element {
                         {/* Visual Traffic Distribution Bar */}
                         <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-500 rounded-full ${
-                              isIphone ? 'bg-amber-500' : 'bg-teal-500'
+                            className={`h-full transition-all duration-300 ease-out rounded-full ${
+                              isIphone ? 'bg-amber-500' : 'bg-emerald-500'
                             }`}
                             style={{ width: `${Math.max(4, weight)}%` }}
                           />
@@ -576,7 +575,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
           </div>
 
           {/* Quick Download Input Bar */}
-          <div className="flex items-center space-x-2 rounded-2xl border border-border/80 bg-card/60 p-2 shadow-sm focus-within:border-emerald-500/60 focus-within:ring-1 focus-within:ring-emerald-500/30 transition-all">
+          <div className="flex items-center space-x-2 rounded-2xl border border-border/80 bg-card/60 p-2 shadow-2xs focus-within:border-emerald-500/60 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
             <input
               type="text"
               aria-label="Quick download URL"
@@ -585,12 +584,12 @@ export function BondingDashboardScreen(): React.JSX.Element {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleQuickDownload()
               }}
-              placeholder="Paste URL, magnet, or drop file to accelerate..."
-              className="flex-1 bg-transparent px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none font-mono"
+              placeholder="Paste URL, magnet, or drop file to accelerate with Multi-WAN bonding..."
+              className="flex-1 bg-transparent px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none font-mono tracking-tight"
             />
             <button
               onClick={() => void handlePasteClipboard()}
-              className="flex items-center space-x-1 rounded-xl border border-border/70 bg-card hover:bg-accent px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-all shrink-0"
+              className="flex items-center space-x-1.5 rounded-xl border border-border/70 bg-card hover:bg-accent px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground active:scale-95 transition-all shrink-0 shadow-2xs"
               title="Paste from clipboard"
             >
               <ClipboardPaste className="h-3.5 w-3.5" />
@@ -599,7 +598,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
             <button
               onClick={handleQuickDownload}
               disabled={!quickUrl.trim()}
-              className="flex items-center space-x-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-all shrink-0"
+              className="flex items-center space-x-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:hover:bg-emerald-500 px-4 py-1.5 text-xs font-bold text-neutral-950 shadow-xs active:scale-95 transition-all shrink-0"
             >
               <Zap className="h-3.5 w-3.5" />
               <span>Accelerate</span>

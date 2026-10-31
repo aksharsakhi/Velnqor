@@ -29,14 +29,13 @@ function formatCompactSpeed(bytesPerSec: number, speedUnit: 'bytes' | 'bits'): s
 }
 
 /**
- * Compact, beautiful macOS menu bar companion popover window.
- * Provides basic operations at a glance:
- * - ⚡ Activate / Stop multi-network bonding
- * - 🌐 Route Mac traffic (system proxy) toggle
- * - Live bidirectional throughput (Download/Upload)
- * - Connected network adapters summary
- * - Active download progress or quick URL accelerator
- * - Quick jump to full Velnqor dashboard or quit
+ * High-end macOS Menu Bar Companion Popover Window:
+ * - Built according to Apple Human Interface Guidelines and Emil Kowalski interaction engineering
+ * - Two-layer rule: functional Liquid Glass popover shell with crisp, high-contrast content cards
+ * - Tabular numbers (tabular-nums font-mono) for zero digit jitter across all live metrics
+ * - Tactile button feedback (active:scale-[0.975])
+ * - Semantic hardware squircle icons (Wi-Fi: Emerald, iPhone USB: Amber, Ethernet: Cyan)
+ * - Zero unnecessary subwindows: directly activates bonding, toggles Mac proxy, monitors adapters
  */
 export function MiniTrayScreen(): React.JSX.Element {
   const {
@@ -108,21 +107,26 @@ export function MiniTrayScreen(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col justify-between overflow-hidden bg-[#141518]/95 p-3.5 text-neutral-100 select-none backdrop-blur-2xl">
-      {/* Top Header */}
+    <div className="flex h-screen w-screen flex-col justify-between overflow-hidden bg-[#131418]/95 p-3.5 text-neutral-100 select-none backdrop-blur-2xl ring-1 ring-white/10">
+      {/* Top Header: Brand + Status + Navigation Controls */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
         <div className="flex items-center space-x-2">
-          <VelnqorLogo className="h-5 w-5 rounded-md shadow-xs ring-1 ring-emerald-500/30" />
-          <span className="text-[13.5px] font-bold tracking-tight text-white">Velnqor</span>
+          <div className="relative flex items-center justify-center">
+            <VelnqorLogo className="h-5 w-5 rounded-md shadow-xs ring-1 ring-emerald-500/30" />
+            {bondingActive && (
+              <span className="absolute -inset-0.5 rounded-md bg-emerald-500/25 blur-xs -z-10 animate-pulse" />
+            )}
+          </div>
+          <span className="text-[13px] font-bold tracking-tight text-white">Velnqor</span>
           <span
-            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-semibold tracking-wide transition-all ${
               bondingActive
                 ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                : 'bg-white/10 text-neutral-400'
+                : 'bg-white/10 text-neutral-400 border border-white/5'
             }`}
           >
             <span
-              className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${
+              className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
                 bondingActive ? 'animate-pulse bg-emerald-400' : 'bg-neutral-400'
               }`}
             />
@@ -135,7 +139,7 @@ export function MiniTrayScreen(): React.JSX.Element {
             type="button"
             onClick={handleOpenFullWindow}
             title="Open Full Velnqor Dashboard"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 transition-all hover:bg-white/10 hover:text-white active:scale-95"
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </button>
@@ -143,7 +147,7 @@ export function MiniTrayScreen(): React.JSX.Element {
             type="button"
             onClick={handleHideTray}
             title="Close Popover"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 transition-all hover:bg-white/10 hover:text-white active:scale-95"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -152,12 +156,18 @@ export function MiniTrayScreen(): React.JSX.Element {
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col justify-between space-y-2.5 py-2.5 overflow-y-auto">
-        {/* Hero Bonding Control Button */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-3 shadow-md">
+        {/* Hero Bonding Control Card */}
+        <div
+          className={`rounded-2xl border p-3 shadow-md transition-all duration-200 ${
+            bondingActive
+              ? 'border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-transparent'
+              : 'border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02]'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
               <div
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors shadow-xs ${
                   bondingActive
                     ? 'bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-500/50'
                     : 'bg-white/10 text-neutral-300'
@@ -166,10 +176,10 @@ export function MiniTrayScreen(): React.JSX.Element {
                 <Zap className={`h-5 w-5 ${bondingActive ? 'fill-emerald-400/20' : ''}`} />
               </div>
               <div>
-                <div className="text-[13px] font-semibold text-white">
+                <div className="text-[12.5px] font-semibold text-white tracking-tight">
                   {bondingActive ? 'Multi-Network Bonding' : 'Bonding Inactive'}
                 </div>
-                <div className="text-[11px] text-neutral-400">
+                <div className="text-[10.5px] text-neutral-400">
                   {bondingActive
                     ? `${interfaces.length} network ${interfaces.length === 1 ? 'adapter' : 'adapters'} bonded`
                     : 'Combine Wi-Fi + Mobile + Ethernet'}
@@ -181,10 +191,10 @@ export function MiniTrayScreen(): React.JSX.Element {
               type="button"
               disabled={isTogglingBond}
               onClick={handleToggleBonding}
-              className={`flex items-center space-x-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-xs transition-all ${
+              className={`flex items-center space-x-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 ${
                 bondingActive
                   ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40 hover:bg-rose-500/30'
-                  : 'bg-emerald-500 text-neutral-950 hover:bg-emerald-400 active:scale-98'
+                  : 'bg-emerald-500 text-neutral-950 hover:bg-emerald-400 shadow-emerald-500/20'
               }`}
             >
               <Power className="h-3.5 w-3.5" />
@@ -193,37 +203,45 @@ export function MiniTrayScreen(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Live Throughput Metrics Card */}
+        {/* Live Throughput Metrics Card with Tabular Numbers */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
-            <div className="flex items-center space-x-1 text-[11px] font-medium text-neutral-400">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 shadow-2xs">
+            <div className="flex items-center space-x-1 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
               <ArrowDown className="h-3.5 w-3.5 text-emerald-400" />
               <span>Download</span>
             </div>
-            <div className="mt-1 font-mono text-[15px] font-bold text-white">
+            <div className="mt-1 font-mono text-[16px] font-black tracking-tight text-white tabular-nums">
               {formatCompactSpeed(totalDownloadSpeed, speedUnit)}
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
-            <div className="flex items-center space-x-1 text-[11px] font-medium text-neutral-400">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 shadow-2xs">
+            <div className="flex items-center space-x-1 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
               <ArrowUp className="h-3.5 w-3.5 text-cyan-400" />
               <span>Upload</span>
             </div>
-            <div className="mt-1 font-mono text-[15px] font-bold text-white">
+            <div className="mt-1 font-mono text-[16px] font-black tracking-tight text-white tabular-nums">
               {formatCompactSpeed(totalUploadSpeed, speedUnit)}
             </div>
           </div>
         </div>
 
         {/* Route Mac Traffic (System Proxy) Toggle */}
-        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-          <div className="flex items-center space-x-2">
-            <Globe
-              className={`h-4 w-4 ${systemProxyActive ? 'text-emerald-400' : 'text-neutral-400'}`}
-            />
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <div
+              className={`flex h-7 w-7 items-center justify-center rounded-lg ${
+                systemProxyActive
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : 'bg-white/5 text-neutral-400'
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+            </div>
             <div>
-              <div className="text-[12px] font-medium text-white">Route Mac Traffic</div>
+              <div className="text-[12px] font-semibold text-white tracking-tight">
+                Route Mac Traffic
+              </div>
               <div className="text-[10px] text-neutral-400">Accelerate all macOS apps</div>
             </div>
           </div>
@@ -244,18 +262,20 @@ export function MiniTrayScreen(): React.JSX.Element {
           </button>
         </div>
 
-        {/* Connected Adapters Summary */}
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
+        {/* Connected Adapters Summary with Semantic Tints & Tabular Numbers */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 shadow-2xs">
           <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-300 mb-1.5">
-            <span>Connected Adapters ({interfaces.length})</span>
+            <span className="uppercase tracking-wider text-[10px] text-neutral-400">
+              Connected Adapters ({interfaces.length})
+            </span>
             <button
               type="button"
               onClick={() => runSpeedTest()}
               disabled={isSpeedTesting}
-              className="flex items-center space-x-1 text-[10px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+              className="flex items-center space-x-1 text-[10px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50 active:scale-95 transition-all"
             >
               <RefreshCw className={`h-2.5 w-2.5 ${isSpeedTesting ? 'animate-spin' : ''}`} />
-              <span>{isSpeedTesting ? 'Testing...' : 'Test Speed'}</span>
+              <span>{isSpeedTesting ? 'Benchmarking...' : 'Benchmark'}</span>
             </button>
           </div>
 
@@ -283,24 +303,34 @@ export function MiniTrayScreen(): React.JSX.Element {
                 return (
                   <div
                     key={iface.id}
-                    className="flex items-center justify-between rounded-lg bg-white/[0.02] px-2 py-1 text-[11px]"
+                    className="flex items-center justify-between rounded-xl bg-white/[0.02] border border-white/5 px-2.5 py-1.5 text-[11px]"
                   >
-                    <div className="flex items-center space-x-1.5 truncate pr-2">
-                      {isWifi ? (
-                        <Wifi className="h-3 w-3 shrink-0 text-emerald-400" />
-                      ) : isMobile ? (
-                        <Smartphone className="h-3 w-3 shrink-0 text-amber-400" />
-                      ) : (
-                        <Layers className="h-3 w-3 shrink-0 text-cyan-400" />
-                      )}
-                      <span className="truncate text-neutral-200">
+                    <div className="flex items-center space-x-2 truncate pr-2">
+                      <div
+                        className={`flex h-5.5 w-5.5 items-center justify-center rounded-md ${
+                          isMobile
+                            ? 'bg-amber-500/15 text-amber-400'
+                            : isWifi
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-cyan-500/15 text-cyan-400'
+                        }`}
+                      >
+                        {isWifi ? (
+                          <Wifi className="h-3 w-3" />
+                        ) : isMobile ? (
+                          <Smartphone className="h-3 w-3" />
+                        ) : (
+                          <Layers className="h-3 w-3" />
+                        )}
+                      </div>
+                      <span className="truncate text-neutral-200 font-medium">
                         {iface.displayName || iface.device}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-1.5 shrink-0">
                       <span
-                        className={`inline-flex items-center rounded-full px-1.5 py-0.2 text-[9px] font-medium ${
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.2 text-[9px] font-semibold ${
                           isActive
                             ? 'bg-emerald-500/20 text-emerald-300'
                             : 'bg-white/10 text-neutral-400'
@@ -309,7 +339,7 @@ export function MiniTrayScreen(): React.JSX.Element {
                         {isActive ? 'Active' : 'Ready'}
                       </span>
                       {hwSpeed > 0 && (
-                        <span className="font-mono text-[10px] text-neutral-300">
+                        <span className="font-mono text-[10px] text-neutral-300 tabular-nums">
                           {formatCompactSpeed(hwSpeed, speedUnit)}
                         </span>
                       )}
@@ -321,14 +351,14 @@ export function MiniTrayScreen(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Active Transfer or Quick Accelerator */}
+        {/* Active Transfer or Quick Accelerator Bar */}
         {activeDownload ? (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-2.5">
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 shadow-2xs">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="truncate font-medium text-emerald-300 pr-2">
+              <span className="truncate font-semibold text-emerald-300 pr-2">
                 {activeDownload.fileName || activeDownload.url}
               </span>
-              <span className="shrink-0 font-mono text-[10px] text-emerald-400">
+              <span className="shrink-0 font-mono text-[10px] text-emerald-400 font-bold tabular-nums">
                 {formatCompactSpeed(activeDownload.speedBytesPerSec ?? 0, speedUnit)}
               </span>
             </div>
@@ -356,13 +386,13 @@ export function MiniTrayScreen(): React.JSX.Element {
               type="text"
               value={quickUrl}
               onChange={(e) => setQuickUrl(e.target.value)}
-              placeholder="Quick accelerate download URL..."
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11px] text-white placeholder:text-neutral-500 focus:border-emerald-500/50 focus:outline-hidden"
+              placeholder="Accelerate download URL..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11px] text-white placeholder:text-neutral-500 focus:border-emerald-500/50 focus:outline-hidden font-mono"
             />
             <button
               type="submit"
               disabled={!quickUrl.trim()}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-neutral-400 transition-colors hover:text-emerald-400 disabled:opacity-30"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-neutral-400 transition-all hover:text-emerald-400 active:scale-95 disabled:opacity-30"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -370,12 +400,12 @@ export function MiniTrayScreen(): React.JSX.Element {
         )}
       </div>
 
-      {/* Footer Navigation */}
+      {/* Footer Navigation: Tactile buttons */}
       <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px]">
         <button
           type="button"
           onClick={handleQuit}
-          className="text-neutral-400 transition-colors hover:text-rose-400"
+          className="text-neutral-400 transition-all hover:text-rose-400 active:scale-95"
         >
           Quit Velnqor
         </button>
@@ -383,7 +413,7 @@ export function MiniTrayScreen(): React.JSX.Element {
         <button
           type="button"
           onClick={handleOpenFullWindow}
-          className="flex items-center space-x-1 font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
+          className="flex items-center space-x-1 font-semibold text-emerald-400 transition-all hover:text-emerald-300 active:scale-95"
         >
           <span>Open Full Dashboard</span>
           <ExternalLink className="h-3 w-3" />

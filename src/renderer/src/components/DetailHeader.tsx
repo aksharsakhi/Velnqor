@@ -57,11 +57,11 @@ export function DetailHeader({ download }: { download: DownloadItem }): React.JS
     <div className="flex h-12 shrink-0 items-center gap-2 border-b-[0.5px] border-border px-5">
       <button
         type="button"
-        onClick={() => setView({ name: 'list' })}
-        className="-ml-2 flex items-center gap-1 rounded-md px-1.5 py-1 font-sans text-[15px] leading-none font-medium text-[var(--text-secondary)] hover:text-foreground"
+        onClick={() => setView({ name: 'bonding' })}
+        className="-ml-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-sans text-[13px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-95 transition-all"
       >
-        <ChevronLeft className="size-4.5" />
-        Downloads
+        <ChevronLeft className="size-4" />
+        Dashboard
       </button>
       <div className="flex-1" />
       {manage.map((id) => button(id, ACTION_META[id].destructive ? 'destructive' : 'secondary'))}

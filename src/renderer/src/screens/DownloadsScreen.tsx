@@ -509,10 +509,10 @@ const DownloadRow = memo(function DownloadRow({
     <div
       data-selected={selected || undefined}
       className={cn(
-        'group/download-row my-0.5 -mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors',
+        'group/download-row my-0.5 -mx-2 flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition-all duration-150',
         selected
           ? 'bg-primary/10 hover:bg-primary/15 focus-within:bg-primary/15'
-          : 'hover:bg-secondary focus-within:bg-secondary'
+          : 'hover:bg-accent/40 focus-within:bg-accent/40'
       )}
     >
       <Checkbox
@@ -523,14 +523,14 @@ const DownloadRow = memo(function DownloadRow({
       <button
         type="button"
         onClick={() => onOpen(item.id)}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-border bg-card font-mono text-[10px] font-semibold text-muted-foreground">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-card/80 font-mono text-[10px] font-bold text-muted-foreground shadow-2xs">
           {badge}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-sans text-[14px] leading-tight font-medium">
+            <span className="truncate font-sans text-[13.5px] leading-tight font-semibold text-foreground">
               {item.fileName}
             </span>
             {item.kind === 'torrent' && <TorrentBadge />}
@@ -543,7 +543,7 @@ const DownloadRow = memo(function DownloadRow({
                         <span
                           role="img"
                           aria-label={dots.map((dot) => `${dot.name} ${dot.state}`).join(', ')}
-                          className="flex items-center gap-1 rounded-full border border-border px-1.5 py-1"
+                          className="flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0.5 bg-card/60"
                         >
                           {dots.map((dot) => (
                             <span
@@ -580,7 +580,9 @@ const DownloadRow = memo(function DownloadRow({
                   </Tooltip>
                 )}
                 {speed && (
-                  <span className="font-mono text-[12.5px] font-medium tabular-nums">{speed}</span>
+                  <span className="font-mono text-[12px] font-semibold tabular-nums text-foreground">
+                    {speed}
+                  </span>
                 )}
               </div>
             )}
@@ -588,7 +590,7 @@ const DownloadRow = memo(function DownloadRow({
           {segments.length > 0 && (
             <div
               className={cn(
-                'flex h-1 overflow-hidden rounded-full bg-muted',
+                'flex h-1.5 overflow-hidden rounded-full bg-muted/70',
                 // Not moving: the colors stay, faded, so it doesn't read as running.
                 !isFinished(item) &&
                   (item.status === 'paused' || item.status === 'queued') &&
@@ -606,7 +608,9 @@ const DownloadRow = memo(function DownloadRow({
               ))}
             </div>
           )}
-          <div className={`truncate font-mono text-[11.5px] leading-tight ${tone}`}>{detail}</div>
+          <div className={`truncate font-mono text-[11px] leading-tight tabular-nums ${tone}`}>
+            {detail}
+          </div>
         </div>
       </button>
       {action && (
@@ -624,7 +628,7 @@ const DownloadRow = memo(function DownloadRow({
                   setWorking(true)
                   void onPerform(actionId!, [item]).finally(() => setWorking(false))
                 }}
-                className="text-muted-foreground group-hover/download-row:text-foreground"
+                className="text-muted-foreground hover:text-foreground active:scale-95 transition-all"
               >
                 <action.icon />
               </Button>
@@ -639,7 +643,7 @@ const DownloadRow = memo(function DownloadRow({
         type="button"
         aria-label={`Open ${item.fileName}`}
         onClick={() => onOpen(item.id)}
-        className="rounded-md p-1 text-muted-foreground transition-colors group-hover/download-row:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        className="rounded-lg p-1 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-ring"
       >
         <ChevronRight className="size-4" />
       </button>
