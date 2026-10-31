@@ -59,32 +59,29 @@ export function TitleBar(): React.JSX.Element {
   return (
     <div
       style={{ height: TITLE_BAR_HEIGHT }}
-      className={`relative flex shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-2xl select-none [-webkit-app-region:drag] ${
+      className={`relative flex shrink-0 items-center justify-between border-b border-black/[0.08] dark:border-white/[0.08] bg-[#fbfbfd]/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl select-none [-webkit-app-region:drag] ${
         isMac ? 'pl-[84px] pr-3.5' : 'px-3.5'
       }`}
     >
-      {/* Brand Identity: SVG Logo with Active Aura */}
-      <div className="flex items-center space-x-2.5 shrink-0">
-        <div className="relative flex items-center justify-center">
-          <VelnqorLogo className="h-5 w-5 rounded-lg shadow-xs ring-1 ring-emerald-500/30" />
-          {bondingActive && (
-            <span className="absolute -inset-1 rounded-lg bg-emerald-500/25 blur-xs -z-10 animate-pulse" />
-          )}
+      {/* Brand Identity: Clean macOS App Identity */}
+      <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center justify-center">
+          <VelnqorLogo className="h-4.5 w-4.5 rounded-md shadow-2xs" />
         </div>
         <div className="flex items-center space-x-2">
-          <span className="font-sans text-[13px] font-bold tracking-tight text-foreground">
+          <span className="font-sans text-[13px] font-semibold tracking-tight text-foreground">
             Velnqor
           </span>
           <span
-            className={`hidden xl:inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-semibold tracking-wide transition-all ${
+            className={`hidden xl:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide transition-all ${
               bondingActive
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 ring-1 ring-emerald-500/20'
-                : 'bg-muted/70 text-muted-foreground border border-border/60'
+                ? 'bg-[#34c759]/15 text-[#248a3d] dark:text-[#34c759]'
+                : 'bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground'
             }`}
           >
             <span
               className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                bondingActive ? 'bg-emerald-400 animate-pulse' : 'bg-muted-foreground/60'
+                bondingActive ? 'bg-[#34c759]' : 'bg-muted-foreground/60'
               }`}
             />
             {bondingActive ? 'Bonding Active' : 'Standby'}
@@ -93,35 +90,35 @@ export function TitleBar(): React.JSX.Element {
       </div>
 
       {/* Center: Apple macOS Segmented Navigation Control */}
-      <div className="flex items-center rounded-xl bg-muted/60 p-0.5 border border-border/50 text-[11px] font-medium [-webkit-app-region:no-drag] shadow-2xs">
+      <div className="flex items-center rounded-lg bg-black/[0.05] dark:bg-white/[0.08] p-0.5 border border-black/[0.04] dark:border-white/[0.06] text-[11.5px] font-medium [-webkit-app-region:no-drag] shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveTab('bonding')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition-all active:scale-95 ${
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
             activeTab === 'bonding'
-              ? 'bg-card text-foreground shadow-xs font-bold border border-border/60'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
           }`}
         >
-          <Zap className={`h-3 w-3 ${activeTab === 'bonding' ? 'text-emerald-400' : ''}`} />
+          <Zap className={`h-3 w-3 ${activeTab === 'bonding' ? 'text-[#007aff]' : ''}`} />
           <span>Multi-WAN Studio</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('downloads')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition-all active:scale-95 ${
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
             activeTab === 'downloads'
-              ? 'bg-card text-foreground shadow-xs font-bold border border-border/60'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
           }`}
         >
           <ArrowDownToLine
-            className={`h-3 w-3 ${activeTab === 'downloads' ? 'text-emerald-400' : ''}`}
+            className={`h-3 w-3 ${activeTab === 'downloads' ? 'text-[#007aff]' : ''}`}
           />
           <span>Transfers</span>
           {activeDownloadsCount > 0 && (
-            <span className="h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-neutral-950 text-[9.5px] font-black flex items-center justify-center tabular-nums">
+            <span className="h-3.5 min-w-3.5 px-1 rounded-full bg-[#007aff] text-white text-[9.5px] font-semibold flex items-center justify-center tabular-nums">
               {activeDownloadsCount}
             </span>
           )}
@@ -130,13 +127,13 @@ export function TitleBar(): React.JSX.Element {
         <button
           type="button"
           onClick={() => setActiveTab('networks')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition-all active:scale-95 ${
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
             activeTab === 'networks'
-              ? 'bg-card text-foreground shadow-xs font-bold border border-border/60'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
           }`}
         >
-          <Network className={`h-3 w-3 ${activeTab === 'networks' ? 'text-emerald-400' : ''}`} />
+          <Network className={`h-3 w-3 ${activeTab === 'networks' ? 'text-[#007aff]' : ''}`} />
           <span>Adapters</span>
           <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
             ({interfaces.length})
@@ -146,13 +143,13 @@ export function TitleBar(): React.JSX.Element {
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition-all active:scale-95 ${
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
             activeTab === 'settings'
-              ? 'bg-card text-foreground shadow-xs font-bold border border-border/60'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
           }`}
         >
-          <Sliders className={`h-3 w-3 ${activeTab === 'settings' ? 'text-emerald-400' : ''}`} />
+          <Sliders className={`h-3 w-3 ${activeTab === 'settings' ? 'text-[#007aff]' : ''}`} />
           <span>Settings</span>
         </button>
       </div>
@@ -160,14 +157,14 @@ export function TitleBar(): React.JSX.Element {
       {/* Right: Live Speed Telemetry + Quick Actions */}
       <div className="flex items-center space-x-2 [-webkit-app-region:no-drag]">
         {hasTraffic && (
-          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-card/90 border border-border/60 text-[11px] font-mono tabular-nums shadow-xs">
-            <span className="text-emerald-400 font-bold flex items-center space-x-1">
-              <span className="text-[9.5px]">↓</span>
+          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] text-[11px] font-mono tabular-nums text-foreground shadow-2xs">
+            <span className="text-foreground font-medium flex items-center space-x-1">
+              <span className="text-[9.5px] text-[#34c759]">↓</span>
               <span>{formatCompactSpeed(totalDownloadSpeed, speedUnit)}</span>
             </span>
-            <span className="text-muted-foreground/40">|</span>
-            <span className="text-cyan-400 font-bold flex items-center space-x-1">
-              <span className="text-[9.5px]">↑</span>
+            <span className="text-muted-foreground/30">·</span>
+            <span className="text-muted-foreground font-medium flex items-center space-x-1">
+              <span className="text-[9.5px] text-[#5856d6]">↑</span>
               <span>{formatCompactSpeed(totalUploadSpeed, speedUnit)}</span>
             </span>
           </div>
@@ -180,11 +177,11 @@ export function TitleBar(): React.JSX.Element {
                 type="button"
                 onClick={() => void handleScan()}
                 disabled={isScanning || interfacesStatus === 'loading'}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 active:scale-95 transition-all"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-[0.98] transition-all"
                 aria-label="Scan Networks"
               >
                 <RefreshCw
-                  className={`h-3.5 w-3.5 ${isScanning || interfacesStatus === 'loading' ? 'animate-spin text-emerald-400' : ''}`}
+                  className={`h-3.5 w-3.5 ${isScanning || interfacesStatus === 'loading' ? 'animate-spin text-[#007aff]' : ''}`}
                 />
               </button>
             }
@@ -198,7 +195,7 @@ export function TitleBar(): React.JSX.Element {
               <button
                 type="button"
                 onClick={() => openNewDownload()}
-                className="flex h-7 items-center space-x-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold px-2.5 text-xs active:scale-95 transition-all shadow-xs"
+                className="flex h-7 items-center space-x-1.5 rounded-md bg-[#007aff] hover:bg-[#0071e3] text-white font-medium px-2.5 text-xs active:scale-[0.98] transition-all shadow-2xs"
                 aria-label="New Download"
               >
                 <Plus className="h-3.5 w-3.5" />
