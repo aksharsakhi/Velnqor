@@ -91,9 +91,9 @@
   --swatch-coral: #c4572a;
   --swatch-coral-onsolid: #ffffff;
 
-  --color-accent: #d97706;
+  --color-accent: #007aff;
   --color-accent-onsolid: #ffffff;
-  --color-success: #1f8a70;
+  --color-success: #34c759;
 
   --color-danger: #dc2626;
   --color-danger-bg: #fef2f2;
@@ -210,9 +210,9 @@
     --swatch-coral: #d99168;
     --swatch-coral-onsolid: #241209;
 
-    --color-accent: #d8a44c;
-    --color-accent-onsolid: #1b1408;
-    --color-success: #4ea89a;
+    --color-accent: #0a84ff;
+    --color-accent-onsolid: #ffffff;
+    --color-success: #30d158;
 
     --color-danger: #eda3a3;
     --color-danger-bg: #2c1c1c;

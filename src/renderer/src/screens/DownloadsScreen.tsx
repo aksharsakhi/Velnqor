@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, X } from 'lucide-react'
+import { ArrowDownToLine, ChevronRight, Plus, X } from 'lucide-react'
 import { cn } from 'cn'
 import { Fragment, memo, useCallback, useEffect, useState } from 'react'
 import { DownloadContextMenu } from '../components/DownloadContextMenu'
@@ -6,7 +6,6 @@ import { useDownloadActions, useDownloadActionsState } from '../components/downl
 import { ACTION_META, toolbarLabel } from '../components/downloadActionMeta'
 import { MoreActionsMenu } from '../components/MoreActionsMenu'
 import { DownloadFilterMenu } from '../components/DownloadFilterMenu'
-import { CombineDiagram } from '../components/CombineDiagram'
 import { LimitsDialog } from '../components/LimitsDialog'
 import { ScheduleIndicator } from '../components/ScheduleIndicator'
 import { networkStatusText } from '../components/NetworkRow'
@@ -313,13 +312,6 @@ export function DownloadsScreen(): React.JSX.Element {
   )
 }
 
-// Colors are irrelevant here — the diagram is rendered `muted`, which overrides them all to
-// var(--icon-muted) — these are just three placeholder rows to draw the illustration with.
-const PLACEHOLDER_NETWORKS = [
-  { solid: 'var(--icon-muted)', label: 'Wi-Fi' },
-  { solid: 'var(--icon-muted)', label: 'USB' },
-  { solid: 'var(--icon-muted)', label: 'Ethernet' }
-]
 const PASTE_SHORTCUT = window.plexo.platform === 'darwin' ? '⌘V' : 'Ctrl+V'
 const NEW_SHORTCUT = window.plexo.platform === 'darwin' ? '⌘N' : 'Ctrl+N'
 
@@ -332,16 +324,20 @@ export function EmptyState(): React.JSX.Element {
   const openNewDownload = useAppStore((store) => store.openNewDownload)
 
   return (
-    <div className="flex flex-col items-center gap-4 px-5 pt-16 pb-10 text-center">
-      <CombineDiagram networks={PLACEHOLDER_NETWORKS} muted />
+    <div className="flex flex-col items-center gap-3.5 px-5 pt-20 pb-12 text-center select-none">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007aff]/10 text-[#007aff] dark:bg-[#007aff]/15 dark:text-[#0a84ff] shadow-2xs mb-1">
+        <ArrowDownToLine className="h-7 w-7" />
+      </div>
       {noNetworks ? (
         <>
-          <div className="font-sans text-[16px] leading-[1.2] font-bold">No networks connected</div>
-          <div className="max-w-[380px] text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">
+          <div className="font-sans text-[16px] leading-[1.2] font-semibold text-foreground">
+            No networks connected
+          </div>
+          <div className="max-w-[360px] text-[13px] leading-relaxed text-muted-foreground">
             Velnqor needs at least one active network. Join a Wi-Fi network, plug in Ethernet, or
             connect your phone using USB tethering.
           </div>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-2 flex gap-2">
             <Button type="button" variant="secondary" onClick={() => loadInterfaces()}>
               Scan again
             </Button>
@@ -356,11 +352,17 @@ export function EmptyState(): React.JSX.Element {
         </>
       ) : (
         <>
-          <div className="font-sans text-[16px] leading-[1.2] font-bold">No downloads yet</div>
-          <div className="max-w-[380px] text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">
+          <div className="font-sans text-[16px] leading-[1.2] font-semibold text-foreground">
+            No downloads yet
+          </div>
+          <div className="max-w-[360px] text-[13px] leading-relaxed text-muted-foreground">
             Paste a link ({PASTE_SHORTCUT}) or drop a .torrent anywhere in this window.
           </div>
-          <Button type="button" className="mt-1" onClick={() => openNewDownload()}>
+          <Button
+            type="button"
+            className="mt-2 shadow-xs cursor-pointer"
+            onClick={() => openNewDownload()}
+          >
             <Plus data-icon="inline-start" />
             New download
             <span className="ml-1 font-mono text-[11px] opacity-70">{NEW_SHORTCUT}</span>

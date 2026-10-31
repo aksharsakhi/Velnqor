@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowDownToLine, Network, Plus, RefreshCw, Sliders, Zap } from 'lucide-react'
+import { Plus, RefreshCw } from 'lucide-react'
 import { TITLE_BAR_HEIGHT } from '../theme'
 import { useAppStore } from '../store/useAppStore'
 import { VelnqorLogo } from './VelnqorLogo'
@@ -36,16 +36,9 @@ export function TitleBar(): React.JSX.Element {
   const loadInterfaces = useAppStore((state) => state.loadInterfaces)
   const interfacesStatus = useAppStore((state) => state.interfacesStatus)
   const activeTab = useAppStore((state) => state.activeTab)
-  const setActiveTab = useAppStore((state) => state.setActiveTab)
-  const downloads = useAppStore((state) => state.downloads)
-  const interfaces = useAppStore((state) => state.interfaces)
 
   const [isScanning, setIsScanning] = useState(false)
   const hasTraffic = totalDownloadSpeed > 0 || totalUploadSpeed > 0
-
-  const activeDownloadsCount = Object.values(downloads ?? {}).filter(
-    (d) => d && (d.status === 'downloading' || d.status === 'queued')
-  ).length
 
   const handleScan = async (): Promise<void> => {
     setIsScanning(true)
@@ -72,89 +65,40 @@ export function TitleBar(): React.JSX.Element {
           <span className="font-sans text-[13px] font-semibold tracking-tight text-foreground">
             Velnqor
           </span>
-          <span
-            className={`hidden xl:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide transition-all ${
-              bondingActive
-                ? 'bg-[#34c759]/15 text-[#248a3d] dark:text-[#34c759]'
-                : 'bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground'
-            }`}
-          >
-            <span
-              className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                bondingActive ? 'bg-[#34c759]' : 'bg-muted-foreground/60'
-              }`}
-            />
-            {bondingActive ? 'Bonding Active' : 'Standby'}
+          <span className="text-muted-foreground/30 text-xs">/</span>
+          <span className="text-[12.5px] font-medium text-foreground">
+            {activeTab === 'bonding'
+              ? 'Multi-WAN Studio'
+              : activeTab === 'downloads'
+                ? 'Transfers'
+                : activeTab === 'networks'
+                  ? 'Network Adapters'
+                  : 'Preferences & Rules'}
           </span>
         </div>
       </div>
 
-      {/* Center: Apple macOS Segmented Navigation Control */}
-      <div className="flex items-center rounded-lg bg-black/[0.05] dark:bg-white/[0.08] p-0.5 border border-black/[0.04] dark:border-white/[0.06] text-[11.5px] font-medium [-webkit-app-region:no-drag] shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setActiveTab('bonding')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
-            activeTab === 'bonding'
-              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
-          }`}
-        >
-          <Zap className={`h-3 w-3 ${activeTab === 'bonding' ? 'text-[#007aff]' : ''}`} />
-          <span>Multi-WAN Studio</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('downloads')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
-            activeTab === 'downloads'
-              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
-          }`}
-        >
-          <ArrowDownToLine
-            className={`h-3 w-3 ${activeTab === 'downloads' ? 'text-[#007aff]' : ''}`}
+      {/* Center: Live Speed Telemetry Capsule */}
+      <div className="flex items-center [-webkit-app-region:no-drag]">
+        <div className="flex items-center space-x-2 px-2.5 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] text-[11px] font-mono tabular-nums text-foreground shadow-2xs">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              bondingActive ? 'bg-[#34c759]' : 'bg-muted-foreground/60'
+            }`}
           />
-          <span>Transfers</span>
-          {activeDownloadsCount > 0 && (
-            <span className="h-3.5 min-w-3.5 px-1 rounded-full bg-[#007aff] text-white text-[9.5px] font-semibold flex items-center justify-center tabular-nums">
-              {activeDownloadsCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('networks')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
-            activeTab === 'networks'
-              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
-          }`}
-        >
-          <Network className={`h-3 w-3 ${activeTab === 'networks' ? 'text-[#007aff]' : ''}`} />
-          <span>Adapters</span>
-          <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-            ({interfaces.length})
+          <span className="text-foreground font-medium flex items-center space-x-1">
+            <span className="text-[9.5px] text-[#34c759]">↓</span>
+            <span>{formatCompactSpeed(totalDownloadSpeed, speedUnit)}</span>
           </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('settings')}
-          className={`flex items-center space-x-1.5 px-3 py-1 rounded-[6px] transition-all active:scale-[0.98] ${
-            activeTab === 'settings'
-              ? 'bg-white dark:bg-[#323236] text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.12)] font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
-          }`}
-        >
-          <Sliders className={`h-3 w-3 ${activeTab === 'settings' ? 'text-[#007aff]' : ''}`} />
-          <span>Settings</span>
-        </button>
+          <span className="text-muted-foreground/30">·</span>
+          <span className="text-muted-foreground font-medium flex items-center space-x-1">
+            <span className="text-[9.5px] text-[#0a84ff]">↑</span>
+            <span>{formatCompactSpeed(totalUploadSpeed, speedUnit)}</span>
+          </span>
+        </div>
       </div>
 
-      {/* Right: Live Speed Telemetry + Quick Actions */}
+      {/* Right: Actions */}
       <div className="flex items-center space-x-2 [-webkit-app-region:no-drag]">
         {hasTraffic && (
           <div className="hidden lg:flex items-center space-x-2 px-2.5 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] text-[11px] font-mono tabular-nums text-foreground shadow-2xs">

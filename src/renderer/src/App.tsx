@@ -50,7 +50,14 @@ function CurrentScreen(): React.JSX.Element {
   })
 
   const cancelled = shown && !('unitsWritten' in shown) && shown.status === 'cancelled'
-  return shown && !cancelled ? renderDownload(shown) : <BondingDashboardScreen />
+  return shown && !cancelled ? (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1">{renderDownload(shown)}</div>
+      <StatusBar />
+    </div>
+  ) : (
+    <BondingDashboardScreen />
+  )
 }
 
 function App(): React.JSX.Element {
@@ -79,7 +86,7 @@ function App(): React.JSX.Element {
   return (
     <TooltipProvider>
       <DownloadActionsProvider>
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col bg-background">
           <TitleBar />
           <div className="min-h-0 flex-1">
             <ErrorBoundary>
@@ -87,7 +94,6 @@ function App(): React.JSX.Element {
             </ErrorBoundary>
           </div>
 
-          <StatusBar />
           <NewDownloadDialog />
           <NetworkBindingDialog />
         </div>
