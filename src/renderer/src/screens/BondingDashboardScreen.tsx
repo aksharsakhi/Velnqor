@@ -7,7 +7,6 @@ import {
   FolderOpen,
   Gauge,
   Globe,
-  HardDrive,
   Layers,
   Network,
   Plus,
@@ -292,23 +291,10 @@ export function BondingDashboardScreen(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Bottom Sidebar Storage Info */}
-        <div className="space-y-2 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
-          {freeDisk !== null && (
-            <div className="rounded-lg bg-black/[0.03] dark:bg-white/[0.05] p-2 text-[11px] text-muted-foreground">
-              <div className="flex items-center space-x-1.5">
-                <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium text-foreground">Storage Volume</span>
-              </div>
-              <div className="font-mono text-[10.5px] tabular-nums mt-0.5">
-                {formatBytes(freeDisk)} available
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-between text-[10.5px] text-muted-foreground px-1">
-            <span>Velnqor Multi-WAN</span>
-            <span className="font-mono">v1.0.0</span>
-          </div>
+        {/* Clean Sidebar Footer with Subtle Version Info */}
+        <div className="pt-2 text-[11px] text-muted-foreground/60 px-2 flex items-center justify-between select-none">
+          <span>Velnqor</span>
+          <span className="font-mono text-[10px]">v1.0.0</span>
         </div>
       </aside>
 
@@ -482,7 +468,7 @@ export function BondingDashboardScreen(): React.JSX.Element {
                     )
                     const ip = ipv4?.address || iface.addresses?.[0]?.address || '127.0.0.1'
                     const liveDown = metric?.downloadSpeedBytesPerSec || 0
-                    const weight = metric?.weight ?? 50
+                    const weight = activeInterfaces.length === 1 ? 100 : (metric?.weight ?? 50)
 
                     return (
                       <div key={iface.id} className="p-3.5 flex items-center justify-between gap-4">
@@ -927,7 +913,8 @@ export function BondingDashboardScreen(): React.JSX.Element {
                   )
                   const ip =
                     ipv4?.address || (hasIp ? iface.addresses[0].address : 'No IP assigned')
-                  const weight = metric?.weight ?? (hasIp ? 50 : 0)
+                  const weight =
+                    activeInterfaces.length === 1 ? 100 : (metric?.weight ?? (hasIp ? 50 : 0))
                   const liveDown = metric?.downloadSpeedBytesPerSec || 0
                   const liveUp = metric?.uploadSpeedBytesPerSec || 0
 
@@ -963,9 +950,17 @@ export function BondingDashboardScreen(): React.JSX.Element {
                               {hasIp ? 'Connected' : 'Unassigned'}
                             </span>
                           </div>
-                          <div className="text-[11.5px] text-muted-foreground font-mono">
-                            IPv4: <span className="text-foreground">{ip}</span>
-                            {iface.mac && <span className="ml-3 opacity-60">MAC: {iface.mac}</span>}
+                          <div className="flex items-center flex-wrap gap-x-3 text-[11.5px] text-muted-foreground font-mono mt-0.5">
+                            <span className="whitespace-nowrap">
+                              IPv4: <strong className="text-foreground font-medium">{ip}</strong>
+                            </span>
+                            {iface.mac &&
+                              iface.mac !== '00:00:00:00:00:00' &&
+                              iface.mac !== '02:00:00:00:00:00' && (
+                                <span className="opacity-60 whitespace-nowrap">
+                                  MAC: {iface.mac}
+                                </span>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -1004,8 +999,18 @@ export function BondingDashboardScreen(): React.JSX.Element {
               {/* Hardware Topology Summary Card */}
               <div className="rounded-xl bg-white dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] p-4.5 shadow-xs flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#34c759]/10 text-[#34c759]">
-                    <CheckCircle2 className="h-5 w-5" />
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                      activeInterfaces.length > 1
+                        ? 'bg-[#34c759]/10 text-[#34c759]'
+                        : 'bg-[#ff9f0a]/10 text-[#ff9f0a]'
+                    }`}
+                  >
+                    {activeInterfaces.length > 1 ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <Zap className="h-5 w-5" />
+                    )}
                   </div>
                   <div>
                     <div className="text-[13px] font-semibold text-foreground">
@@ -1023,7 +1028,11 @@ export function BondingDashboardScreen(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setActiveTab('bonding')}
-                  className="rounded-md bg-[#007aff] hover:bg-[#0071e3] text-white text-[12px] font-medium px-3 py-1.5 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+                  className={`rounded-md text-[12px] font-medium px-3 py-1.5 active:scale-[0.98] transition-all cursor-pointer shadow-2xs ${
+                    activeInterfaces.length > 1
+                      ? 'bg-[#007aff] hover:bg-[#0071e3] text-white'
+                      : 'border border-black/[0.08] dark:border-white/[0.1] bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-foreground'
+                  }`}
                 >
                   Manage Bonding Studio →
                 </button>

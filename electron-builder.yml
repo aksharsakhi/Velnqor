@@ -44,6 +44,8 @@ nsis:
 mac:
   # Only the zips go by this name: the dmg has its own (dmg.artifactName).
   artifactName: ${name}-${version}-${arch}-mac.${ext}
+  signIgnore:
+    - '.*koffi.*'
   target:
     - target: dmg
       arch: [x64, arm64]

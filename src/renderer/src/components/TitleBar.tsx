@@ -63,17 +63,13 @@ export function TitleBar(): React.JSX.Element {
         </div>
         <div className="flex items-center space-x-2">
           <span className="font-sans text-[13px] font-semibold tracking-tight text-foreground">
-            Velnqor
-          </span>
-          <span className="text-muted-foreground/30 text-xs">/</span>
-          <span className="text-[12.5px] font-medium text-foreground">
             {activeTab === 'bonding'
               ? 'Multi-WAN Studio'
               : activeTab === 'downloads'
                 ? 'Transfers'
                 : activeTab === 'networks'
                   ? 'Network Adapters'
-                  : 'Preferences & Rules'}
+                  : 'Preferences'}
           </span>
         </div>
       </div>
