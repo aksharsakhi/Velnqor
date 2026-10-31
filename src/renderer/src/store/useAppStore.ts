@@ -98,8 +98,8 @@ interface AppStore {
   setDraftUrl: (url: string) => void
   setDestinationDir: (dir: string) => void
 
-  activeTab: 'bonding' | 'downloads'
-  setActiveTab: (tab: 'bonding' | 'downloads') => void
+  activeTab: 'bonding' | 'downloads' | 'networks' | 'settings'
+  setActiveTab: (tab: 'bonding' | 'downloads' | 'networks' | 'settings') => void
   bondingState: BondingState
   loadBondingState: () => Promise<void>
   toggleBonding: () => Promise<void>
@@ -139,7 +139,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setActiveTab: (activeTab) =>
     set({
       activeTab,
-      view: activeTab === 'bonding' ? { name: 'bonding' } : { name: 'list' }
+      view: activeTab === 'downloads' ? { name: 'list' } : { name: 'bonding' }
     }),
   downloadFilter: 'all',
   setDownloadFilter: (downloadFilter) => set({ downloadFilter }),
@@ -329,6 +329,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   toggleBonding: async () => {
     const current = get().bondingState.active
+    // Instantaneous optimistic update for zero latency
+    set((state) => ({
+      bondingState: {
+        ...state.bondingState,
+        active: !current,
+        systemProxyActive: !current
+      }
+    }))
     try {
       if (current) {
         await window.velnqor.stopBonding()
@@ -339,6 +347,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ bondingState: updated })
     } catch (err) {
       console.error('Failed to toggle bonding:', err)
+      const reverted = await window.velnqor.getBondingState().catch(() => null)
+      if (reverted) set({ bondingState: reverted })
     }
   },
 
@@ -353,12 +363,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   toggleSystemProxy: async (enable) => {
+    const target = enable !== undefined ? enable : !get().bondingState.systemProxyActive
+    // Instantaneous optimistic update for zero latency
+    set((state) => ({
+      bondingState: {
+        ...state.bondingState,
+        systemProxyActive: target
+      }
+    }))
     try {
-      await window.velnqor.toggleSystemProxy(enable)
+      await window.velnqor.toggleSystemProxy(target)
       const updated = await window.velnqor.getBondingState()
       set({ bondingState: updated })
     } catch (err) {
       console.error('Failed to toggle system proxy:', err)
+      const reverted = await window.velnqor.getBondingState().catch(() => null)
+      if (reverted) set({ bondingState: reverted })
     }
   },
 
